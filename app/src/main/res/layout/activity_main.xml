@@ -154,6 +154,12 @@
                 android:src="@drawable/ic_text" />
 
             <ImageButton
+                android:id="@+id/btnTranslateAll"
+                style="@style/ViewerIconButton"
+                android:contentDescription="@string/translate"
+                android:src="@drawable/ic_translate" />
+
+            <ImageButton
                 android:id="@+id/btnCopyAll"
                 style="@style/ViewerIconButton"
                 android:contentDescription="@string/copy_all"

@@ -3,7 +3,7 @@
     <string name="intent_extract_text">Text erkennen</string>
     <string name="tile_label">OCR Screenshot</string>
 
-    <string name="home_subtitle">Text in beliebigen Bildern markieren und kopieren.\nAlles läuft lokal auf dem Gerät — ohne Internet, ohne Google-Dienste.</string>
+    <string name="home_subtitle">Text in beliebigen Bildern markieren und kopieren.\nErkennung und Übersetzung laufen lokal auf dem Gerät — ohne Google-Dienste. Internet wird nur zum Laden der Übersetzungsmodelle genutzt.</string>
     <string name="home_hint">Tipp: Teile ein beliebiges Bild mit TextGrab oder füge die Kachel „OCR Screenshot" zu den Schnelleinstellungen hinzu — Screenshot machen, Kachel antippen, Text markieren.</string>
     <string name="pick_image">Bild auswählen</string>
     <string name="latest_screenshot">Letzter Screenshot</string>
@@ -18,6 +18,14 @@
     <string name="search_web">Im Web suchen</string>
     <string name="view_as_text">Als Text anzeigen</string>
     <string name="recognized_text">Erkannter Text</string>
+    <string name="translate">Übersetzen</string>
+    <string name="translate_to">Übersetzen nach</string>
+    <string name="show_original">Original anzeigen</string>
+    <string name="translated_from">%1$s → %2$s</string>
+    <string name="change_language">Ändern</string>
+    <string name="already_in_language">Text ist bereits auf %1$s</string>
+    <string name="downloading_models">Sprachmodelle werden geladen (ca. 30 MB pro Sprache, nur einmal)…</string>
+    <string name="translation_failed">Übersetzung fehlgeschlagen. %1$s</string>
 
     <string name="set_as_assistant">Als Assistenz-App festlegen</string>
     <string name="adb_label">Aufnahme per adb auslösen (tippen zum Kopieren):</string>
@@ -31,4 +39,5 @@
     <string name="no_screenshot_found">Kein Screenshot gefunden</string>
     <string name="permission_needed">Fotozugriff wird benötigt, um den letzten Screenshot zu öffnen</string>
     <string name="load_failed">Bild konnte nicht geöffnet werden. %1$s</string>
+
 </resources>

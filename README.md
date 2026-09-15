@@ -74,9 +74,22 @@ The app bundles Google's ML Kit **on-device** text recognizer, the same class
 of neural model that powers Pixel Live Text. The model is packaged inside the
 APK, so recognition:
 
-- runs entirely on the device. The app has **no internet permission**.
+- runs entirely on the device. Internet is only used to download
+  translation models (see below); recognized text never leaves the device.
 - needs **no Google Play services** and works on GrapheneOS out of the box.
 - is fast: typically well under a second per screenshot on real hardware.
+
+## Translation
+
+Tap the translate button in the toolbar and every recognized line on the
+image is replaced in place by its translation, like the Circle to Search
+translator. Tap it again to show the original; long-press it to pick the
+target language. Selecting and copying works on the translated text. The
+source language is detected automatically with ML Kit's bundled language
+identification model; the target language is remembered. Translation uses ML Kit's **on-device** translator: each
+language model (~30 MB) is downloaded once from Google's servers the first
+time it is needed, after which translation works offline. This is the only
+reason the app requests the internet permission.
 
 ## Supported languages
 

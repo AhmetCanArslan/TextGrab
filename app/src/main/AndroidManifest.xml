@@ -2,10 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Recognition is fully on-device; strip the network permissions that
-         the ML Kit library manifest would otherwise merge in. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+    <!-- Recognition and translation run on-device. Network access is only
+         used to download translation models the first time a language is used. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Only needed for the "OCR latest screenshot" quick-settings tile -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />

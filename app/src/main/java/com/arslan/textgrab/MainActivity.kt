@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.RectF
 import android.net.Uri
@@ -26,8 +27,12 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.mlkit.nl.translate.TranslateLanguage
 import com.arslan.textgrab.databinding.ActivityMainBinding
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -44,6 +49,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     private var currentBitmap: Bitmap? = null
     private var currentResult: OcrEngine.Result? = null
     private var launchedWithImage = false
+    private var translateJob: Job? = null
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -113,6 +119,13 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             currentResult?.fullText?.takeIf { it.isNotBlank() }?.let { shareText(it) }
         }
         binding.btnTextMode.setOnClickListener { showTextSheet() }
+        binding.btnTranslateAll.setOnClickListener {
+            if (binding.ocrView.translations != null) resetTranslation() else translateScreen()
+        }
+        binding.btnTranslateAll.setOnLongClickListener {
+            chooseTargetLanguage()
+            true
+        }
 
         binding.toolbarCopy.setOnClickListener {
             binding.ocrView.selectedText?.let {
@@ -306,6 +319,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     // ---------------------------------------------------------------- UI state
 
     private fun showHome() {
+        resetTranslation()
         binding.homeGroup.isVisible = true
         binding.viewerGroup.isVisible = false
         binding.progressGroup.isVisible = false
@@ -319,7 +333,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.homeGroup.isVisible = false
         binding.viewerGroup.isVisible = true
         binding.progressGroup.isVisible = loading
-        if (loading) binding.selectionToolbar.isVisible = false
+        if (loading) {
+            binding.selectionToolbar.isVisible = false
+            resetTranslation()
+        }
     }
 
     private fun onBackFromViewer() {
@@ -404,5 +421,89 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         view.findViewById<View>(R.id.sheetShare).setOnClickListener { shareText(text) }
         sheet.setContentView(view)
         sheet.show()
+    }
+
+    // ----------------------------------------------------------- translation
+
+    /** Replaces every recognized line on the image with its translation, in place. */
+    private fun translateScreen() {
+        val result = currentResult ?: return
+        if (result.isEmpty) {
+            Snackbar.make(binding.root, R.string.no_text_found, Snackbar.LENGTH_SHORT).show()
+            return
+        }
+        val target = Translator.defaultTarget(this)
+        translateJob?.cancel()
+        translateJob = lifecycleScope.launch {
+            binding.progressGroup.isVisible = true
+            var downloadNote: Snackbar? = null
+            try {
+                val outcome = Translator.translate(result, target) {
+                    downloadNote = Snackbar.make(
+                        binding.root, R.string.downloading_models, Snackbar.LENGTH_INDEFINITE
+                    ).also { it.show() }
+                }
+                if (currentResult !== result) return@launch
+                if (outcome.sources.isEmpty()) {
+                    Snackbar.make(
+                        binding.root,
+                        getString(R.string.already_in_language, Translator.displayName(target)),
+                        Snackbar.LENGTH_LONG
+                    ).setAction(R.string.change_language) { chooseTargetLanguage() }.show()
+                    return@launch
+                }
+                binding.ocrView.translations = outcome.lines
+                setTranslateActive(true)
+                Snackbar.make(
+                    binding.root,
+                    getString(
+                        R.string.translated_from,
+                        outcome.sources.joinToString(", ") { Translator.displayName(it) },
+                        Translator.displayName(target)
+                    ),
+                    Snackbar.LENGTH_LONG
+                ).setAction(R.string.change_language) { chooseTargetLanguage() }.show()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("TextGrab", "Translation failed", e)
+                Snackbar.make(
+                    binding.root,
+                    getString(R.string.translation_failed, e.localizedMessage ?: ""),
+                    Snackbar.LENGTH_LONG
+                ).show()
+            } finally {
+                downloadNote?.dismiss()
+                binding.progressGroup.isVisible = false
+            }
+        }
+    }
+
+    private fun resetTranslation() {
+        translateJob?.cancel()
+        translateJob = null
+        binding.ocrView.translations = null
+        setTranslateActive(false)
+    }
+
+    private fun setTranslateActive(active: Boolean) {
+        binding.btnTranslateAll.imageTintList = ColorStateList.valueOf(
+            if (active) 0xFF3B82F6.toInt() else android.graphics.Color.WHITE
+        )
+        binding.btnTranslateAll.contentDescription =
+            getString(if (active) R.string.show_original else R.string.translate)
+    }
+
+    private fun chooseTargetLanguage() {
+        val codes = Translator.languages.sortedBy { Translator.displayName(it) }
+        val names = codes.map { Translator.displayName(it) }.toTypedArray()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.translate_to)
+            .setSingleChoiceItems(names, codes.indexOf(Translator.defaultTarget(this))) { dialog, which ->
+                dialog.dismiss()
+                Translator.saveTarget(this, codes[which])
+                if (binding.viewerGroup.isVisible) translateScreen()
+            }
+            .show()
     }
 }

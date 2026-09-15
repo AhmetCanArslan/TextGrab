@@ -41,6 +41,8 @@ object OcrEngine {
     data class Result(
         val words: List<Word>,
         val lineBoxes: List<RectF>,
+        /** ML Kit block (paragraph) of each line, indexed like [lineBoxes]. */
+        val lineBlocks: List<Int>,
     ) {
         val isEmpty get() = words.isEmpty()
 
@@ -59,9 +61,18 @@ object OcrEngine {
         }
 
         val fullText: String get() = if (isEmpty) "" else textOf(0, words.size - 1)
+
+        /** Text of each line, indexed like [lineBoxes]. */
+        val lineTexts: List<String>
+            get() {
+                val byLine = words.groupBy { it.lineId }
+                return lineBoxes.indices.map { id ->
+                    byLine[id]?.joinToString(" ") { it.text }.orEmpty()
+                }
+            }
     }
 
-    private class Line(val box: RectF, val words: List<Pair<String, RectF>>)
+    private class Line(val box: RectF, val words: List<Pair<String, RectF>>, val blockId: Int)
 
     /** Filtered recognizer output plus a quality score used to pick between scripts. */
     private class Scored(val lines: List<Line>, val score: Float, val meanConfidence: Float)
@@ -113,7 +124,7 @@ object OcrEngine {
         var score = 0f
         var confSum = 0f
         var confCount = 0
-        for (block in text.textBlocks) {
+        for ((blockId, block) in text.textBlocks.withIndex()) {
             for (line in block.lines) {
                 val words = ArrayList<Pair<String, RectF>>()
                 for (e in line.elements) {
@@ -132,7 +143,7 @@ object OcrEngine {
                 if (words.isEmpty()) continue
                 // Rebuild the line box from kept words, so a dropped icon doesn't inflate it.
                 val lineBox = RectF(words[0].second).apply { words.forEach { union(it.second) } }
-                lines.add(Line(lineBox, words))
+                lines.add(Line(lineBox, words, blockId))
             }
         }
         val mean = if (confCount > 0) confSum / confCount else 1f
@@ -161,17 +172,19 @@ object OcrEngine {
         }
         val words = ArrayList<Word>()
         val lineBoxes = ArrayList<RectF>()
+        val lineBlocks = ArrayList<Int>()
         var lineId = 0
         rows.forEachIndexed { rowId, row ->
             for (line in row.sortedBy { it.box.left }) {
                 lineBoxes.add(line.box)
+                lineBlocks.add(line.blockId)
                 for ((t, box) in line.words.sortedBy { it.second.left }) {
                     words.add(Word(t, box, lineId, rowId))
                 }
                 lineId++
             }
         }
-        return Result(words, lineBoxes)
+        return Result(words, lineBoxes, lineBlocks)
     }
 
     private fun sameRow(a: RectF, b: RectF): Boolean {

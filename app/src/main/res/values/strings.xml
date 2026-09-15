@@ -4,7 +4,7 @@
     <string name="intent_extract_text">Extract text</string>
     <string name="tile_label">OCR screenshot</string>
 
-    <string name="home_subtitle">Select and copy text from any image.\nEverything runs on this device — no internet, no Google services.</string>
+    <string name="home_subtitle">Select and copy text from any image.\nRecognition and translation run on this device — no Google services. Internet is only used to download translation models.</string>
     <string name="home_hint">Tip: share any image to TextGrab, or add the "OCR screenshot" tile to your quick settings — take a screenshot, tap the tile, select the text.</string>
     <string name="pick_image">Choose image</string>
     <string name="latest_screenshot">Latest screenshot</string>
@@ -19,6 +19,14 @@
     <string name="search_web">Search the web</string>
     <string name="view_as_text">View as text</string>
     <string name="recognized_text">Recognized text</string>
+    <string name="translate">Translate</string>
+    <string name="translate_to">Translate to</string>
+    <string name="show_original">Show original</string>
+    <string name="translated_from">%1$s → %2$s</string>
+    <string name="change_language">Change</string>
+    <string name="already_in_language">Text is already in %1$s</string>
+    <string name="downloading_models">Downloading language models (about 30 MB per language, only once)…</string>
+    <string name="translation_failed">Translation failed. %1$s</string>
 
     <string name="enable_instant_capture">Enable instant capture</string>
     <string name="a11y_label">TextGrab instant capture</string>

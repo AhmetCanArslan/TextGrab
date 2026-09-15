@@ -60,6 +60,27 @@ class SelectableOcrView @JvmOverloads constructor(
             refit()
         }
 
+    /**
+     * Per-line translations, indexed like [OcrEngine.Result.lineBoxes]. When set,
+     * each translated line is painted over with its translation and selections
+     * copy the translated text; null entries keep the original line. A null
+     * list shows the original image.
+     */
+    var translations: List<String?>? = null
+        set(value) {
+            field = value
+            overlayColors = value?.let { computeOverlayColors() }
+            overlayStyles = value?.let { computeOverlayStyles(it) }
+            if (selStart != -1) notifySelection()
+            invalidate()
+        }
+
+    /** Background and text color per line, sampled once from the bitmap. */
+    private var overlayColors: List<Pair<Int, Int>>? = null
+
+    /** Text size (bitmap pixels) and horizontal scale per line, shared across a paragraph. */
+    private var overlayStyles: List<Pair<Float, Float>>? = null
+
     private var bitmap: Bitmap? = null
     private var result: OcrEngine.Result? = null
     private var lines: LineIndex? = null
@@ -110,6 +131,8 @@ class SelectableOcrView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = dp(2f)
     }
+    private val overlayBgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val overlayTextPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
     private val backgroundPaint = Paint().apply { color = 0xFF101014.toInt() }
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val clipPath = Path()
@@ -131,6 +154,7 @@ class SelectableOcrView @JvmOverloads constructor(
         backdrop = if (capturePreview) BlurredBackdrop(bmp) else null
         selStart = -1
         selEnd = -1
+        translations = null
         if (width > 0 && height > 0) resetFit()
         invalidate()
     }
@@ -142,6 +166,7 @@ class SelectableOcrView @JvmOverloads constructor(
         backdrop = null
         selStart = -1
         selEnd = -1
+        translations = null
         invalidate()
     }
 
@@ -168,7 +193,19 @@ class SelectableOcrView @JvmOverloads constructor(
         get() {
             val r = result ?: return null
             if (selStart == -1) return null
-            return r.textOf(selStart, selEnd)
+            val t = translations ?: return r.textOf(selStart, selEnd)
+            // Whole translated lines: word boundaries don't survive translation.
+            val originals = r.lineTexts
+            val sb = StringBuilder()
+            var prev: OcrEngine.Word? = null
+            for (i in selStart..selEnd) {
+                val w = r.words[i]
+                if (prev != null && prev.lineId == w.lineId) continue
+                if (prev != null) sb.append(if (prev.rowId != w.rowId) "\n" else " ")
+                sb.append(t.getOrNull(w.lineId) ?: originals[w.lineId])
+                prev = w
+            }
+            return sb.toString()
         }
 
     // ----------------------------------------------------------------- layout
@@ -268,7 +305,106 @@ class SelectableOcrView @JvmOverloads constructor(
         }
 
         val r = result ?: return
-        if (selStart == -1) drawHints(canvas, r) else drawSelection(canvas, r)
+        val t = translations
+        val colors = overlayColors
+        val styles = overlayStyles
+        if (t != null && colors != null && styles != null) {
+            drawTranslations(canvas, r, t, colors, styles)
+            if (selStart != -1) drawSelection(canvas, r)
+        } else if (selStart == -1) drawHints(canvas, r) else drawSelection(canvas, r)
+    }
+
+    /** Covers each translated line with its sampled background and draws the translation. */
+    private fun drawTranslations(
+        canvas: Canvas,
+        r: OcrEngine.Result,
+        texts: List<String?>,
+        colors: List<Pair<Int, Int>>,
+        styles: List<Pair<Float, Float>>,
+    ) {
+        canvas.save()
+        canvas.concat(imageMatrix)
+        r.lineBoxes.forEachIndexed { i, box ->
+            val text = texts.getOrNull(i) ?: return@forEachIndexed
+            val (bg, fg) = colors[i]
+            val pad = box.height() * 0.12f
+            tmpRect.set(box)
+            tmpRect.inset(-pad, -pad)
+            overlayBgPaint.color = bg
+            canvas.drawRoundRect(tmpRect, pad, pad, overlayBgPaint)
+            if (text.isEmpty()) return@forEachIndexed
+
+            overlayTextPaint.color = fg
+            overlayTextPaint.textSize = styles[i].first
+            overlayTextPaint.textScaleX = styles[i].second
+            val fm = overlayTextPaint.fontMetrics
+            val baseline = box.centerY() - (fm.ascent + fm.descent) / 2f
+            canvas.drawText(text, box.left, baseline, overlayTextPaint)
+        }
+        canvas.restore()
+    }
+
+    /**
+     * Shrinks text that doesn't fit its line (down to [MIN_TEXT_SHRINK]), uses the
+     * smallest size of each paragraph for all its lines so it reads as one piece,
+     * then condenses any line that still overflows.
+     */
+    private fun computeOverlayStyles(texts: List<String?>): List<Pair<Float, Float>> {
+        val r = result ?: return emptyList()
+        val paint = Paint(overlayTextPaint)
+        val sizes = r.lineBoxes.mapIndexed { i, box ->
+            val text = texts.getOrNull(i)
+            val base = box.height() * 0.8f
+            if (text.isNullOrEmpty()) return@mapIndexed Float.MAX_VALUE
+            paint.textSize = base
+            val w = paint.measureText(text)
+            if (w > box.width()) base * max(box.width() / w, MIN_TEXT_SHRINK) else base
+        }
+        val blockSize = HashMap<Int, Float>()
+        sizes.forEachIndexed { i, s ->
+            val b = r.lineBlocks[i]
+            blockSize[b] = min(blockSize[b] ?: Float.MAX_VALUE, s)
+        }
+        return r.lineBoxes.mapIndexed { i, box ->
+            val text = texts.getOrNull(i)
+            if (text.isNullOrEmpty()) return@mapIndexed 0f to 1f
+            val size = min(blockSize.getValue(r.lineBlocks[i]), box.height() * 0.8f)
+            paint.textSize = size
+            val w = paint.measureText(text)
+            size to if (w > box.width()) max(box.width() / w, MIN_TEXT_SCALE_X) else 1f
+        }
+    }
+
+    private fun computeOverlayColors(): List<Pair<Int, Int>> {
+        val src = bitmap ?: return emptyList()
+        val r = result ?: return emptyList()
+        // Hardware bitmaps (instant captures) can't be read pixel by pixel.
+        val bmp = if (Build.VERSION.SDK_INT >= 26 && src.config == Bitmap.Config.HARDWARE)
+            src.copy(Bitmap.Config.ARGB_8888, false) else src
+        return r.lineBoxes.map { box ->
+            val bg = borderColor(bmp, box)
+            val luminance = 0.299 * Color.red(bg) + 0.587 * Color.green(bg) + 0.114 * Color.blue(bg)
+            bg to if (luminance > 140) 0xFF202124.toInt() else Color.WHITE
+        }.also { if (bmp !== src) bmp.recycle() }
+    }
+
+    /** Average color of a thin ring just outside [box], which is usually plain background. */
+    private fun borderColor(bmp: Bitmap, box: RectF): Int {
+        val margin = max(2f, box.height() * 0.15f)
+        val left = (box.left - margin).toInt().coerceIn(0, bmp.width - 1)
+        val right = (box.right + margin).toInt().coerceIn(0, bmp.width - 1)
+        val top = (box.top - margin).toInt().coerceIn(0, bmp.height - 1)
+        val bottom = (box.bottom + margin).toInt().coerceIn(0, bmp.height - 1)
+        var red = 0L; var green = 0L; var blue = 0L; var n = 0
+        fun sample(x: Int, y: Int) {
+            val c = bmp.getPixel(x, y)
+            red += Color.red(c); green += Color.green(c); blue += Color.blue(c); n++
+        }
+        val stepX = max(1, (right - left) / 24)
+        val stepY = max(1, (bottom - top) / 6)
+        for (x in left..right step stepX) { sample(x, top); sample(x, bottom) }
+        for (y in top..bottom step stepY) { sample(left, y); sample(right, y) }
+        return Color.rgb((red / n).toInt(), (green / n).toInt(), (blue / n).toInt())
     }
 
     /** Subtle hint that text was found and is selectable. */
@@ -497,10 +633,13 @@ class SelectableOcrView @JvmOverloads constructor(
         val anchor = RectF(r.words[selStart].box)
         for (i in selStart..selEnd) anchor.union(r.words[i].box)
         imageMatrix.mapRect(anchor)
-        listener?.onSelectionChanged(r.textOf(selStart, selEnd), anchor)
+        listener?.onSelectionChanged(selectedText, anchor)
     }
 
     private companion object {
+        /** Smallest text size, relative to the line height, before condensing instead. */
+        const val MIN_TEXT_SHRINK = 0.6f
+        const val MIN_TEXT_SCALE_X = 0.7f
         /** Share of the free area a capture preview fills. */
         const val CAPTURE_FIT_FRACTION = 0.87f
         const val PREVIEW_CORNER_RADIUS_DP = 24f
