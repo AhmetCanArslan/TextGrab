@@ -4,8 +4,8 @@
     <string name="intent_extract_text">Extract text</string>
     <string name="tile_label">OCR screenshot</string>
 
-    <string name="home_subtitle">Select and copy text from any image.\nRecognition and translation run on this device — no Google services. Internet is only used to download translation models.</string>
-    <string name="home_hint">Tip: share any image to TextGrab, or add the "OCR screenshot" tile to your quick settings — take a screenshot, tap the tile, select the text.</string>
+    <string name="home_subtitle">Recognition and translation run on this device — no Google services. Internet is only used to download language packs.</string>
+    <string name="home_hint">Share any image to TextGrab, or add the \"OCR screenshot\" tile to quick settings: take a screenshot, tap the tile, select the text.</string>
     <string name="pick_image">Choose image</string>
     <string name="latest_screenshot">Latest screenshot</string>
 
@@ -32,7 +32,7 @@
     <string name="a11y_label">TextGrab instant capture</string>
     <string name="a11y_description">Lets the OCR screenshot tile capture the screen by itself, so one tap on the tile is enough. TextGrab only takes a screenshot when you tap the tile. It does not read screen content, does not observe your input and has no internet access.</string>
     <string name="set_as_assistant">Set as assistant app</string>
-    <string name="adb_label">Trigger a capture via adb (tap to copy):</string>
+    <string name="adb_label">Trigger via adb</string>
     <string name="adb_copy">Copy adb command</string>
     <string name="capture_failed">Screen capture failed, opening latest screenshot instead</string>
 
@@ -40,4 +40,22 @@
     <string name="no_screenshot_found">No screenshot found</string>
     <string name="permission_needed">Photo access is needed to open your latest screenshot</string>
     <string name="load_failed">Could not open image. %1$s</string>
+
+    <string name="home_tagline">Select, copy and translate text from any image</string>
+    <string name="section_setup">Setup</string>
+    <string name="section_translation">Translation</string>
+    <string name="section_more">Tips &amp; advanced</string>
+    <string name="enable_instant_capture_summary">Capture the screen with a single tap on the tile</string>
+    <string name="set_as_assistant_summary">Grab text with the assistant gesture</string>
+    <string name="language_packs">Language packs</string>
+    <string name="language_packs_summary">%1$d installed · works offline</string>
+    <string name="language_packs_hint">Each pack is about 30 MB and works offline once installed. Tap a language to translate into it.</string>
+    <string name="language_downloaded">Installed</string>
+    <string name="language_not_downloaded">Not installed · ~30 MB</string>
+    <string name="language_built_in">Built in</string>
+    <string name="language_downloading">Downloading…</string>
+    <string name="language_download">Download</string>
+    <string name="language_delete">Delete</string>
+    <string name="language_delete_confirm">Delete the %1$s language pack?</string>
+    <string name="language_download_failed">Download failed. %1$s</string>
 </resources>

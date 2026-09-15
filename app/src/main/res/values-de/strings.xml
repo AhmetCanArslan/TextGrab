@@ -3,8 +3,8 @@
     <string name="intent_extract_text">Text erkennen</string>
     <string name="tile_label">OCR Screenshot</string>
 
-    <string name="home_subtitle">Text in beliebigen Bildern markieren und kopieren.\nErkennung und Übersetzung laufen lokal auf dem Gerät — ohne Google-Dienste. Internet wird nur zum Laden der Übersetzungsmodelle genutzt.</string>
-    <string name="home_hint">Tipp: Teile ein beliebiges Bild mit TextGrab oder füge die Kachel „OCR Screenshot" zu den Schnelleinstellungen hinzu — Screenshot machen, Kachel antippen, Text markieren.</string>
+    <string name="home_subtitle">Erkennung und Übersetzung laufen lokal auf dem Gerät — ohne Google-Dienste. Internet wird nur zum Laden der Sprachpakete genutzt.</string>
+    <string name="home_hint">Teile ein beliebiges Bild mit TextGrab oder füge die Kachel „OCR Screenshot" zu den Schnelleinstellungen hinzu: Screenshot machen, Kachel antippen, Text markieren.</string>
     <string name="pick_image">Bild auswählen</string>
     <string name="latest_screenshot">Letzter Screenshot</string>
 
@@ -28,7 +28,7 @@
     <string name="translation_failed">Übersetzung fehlgeschlagen. %1$s</string>
 
     <string name="set_as_assistant">Als Assistenz-App festlegen</string>
-    <string name="adb_label">Aufnahme per adb auslösen (tippen zum Kopieren):</string>
+    <string name="adb_label">Per adb auslösen</string>
     <string name="adb_copy">adb-Befehl kopieren</string>
     <string name="enable_instant_capture">Sofortaufnahme aktivieren</string>
     <string name="a11y_label">TextGrab Sofortaufnahme</string>
@@ -40,4 +40,21 @@
     <string name="permission_needed">Fotozugriff wird benötigt, um den letzten Screenshot zu öffnen</string>
     <string name="load_failed">Bild konnte nicht geöffnet werden. %1$s</string>
 
+    <string name="home_tagline">Text in Bildern markieren, kopieren und übersetzen</string>
+    <string name="section_setup">Einrichtung</string>
+    <string name="section_translation">Übersetzung</string>
+    <string name="section_more">Tipps &amp; Erweitert</string>
+    <string name="enable_instant_capture_summary">Bildschirm mit einem Tipp auf die Kachel aufnehmen</string>
+    <string name="set_as_assistant_summary">Text per Assistenz-Geste erfassen</string>
+    <string name="language_packs">Sprachpakete</string>
+    <string name="language_packs_summary">%1$d installiert · funktioniert offline</string>
+    <string name="language_packs_hint">Jedes Paket ist ca. 30 MB groß und funktioniert nach der Installation offline. Tippe auf eine Sprache, um in sie zu übersetzen.</string>
+    <string name="language_downloaded">Installiert</string>
+    <string name="language_not_downloaded">Nicht installiert · ~30 MB</string>
+    <string name="language_built_in">Integriert</string>
+    <string name="language_downloading">Wird geladen…</string>
+    <string name="language_download">Herunterladen</string>
+    <string name="language_delete">Löschen</string>
+    <string name="language_delete_confirm">Sprachpaket %1$s löschen?</string>
+    <string name="language_download_failed">Download fehlgeschlagen. %1$s</string>
 </resources>

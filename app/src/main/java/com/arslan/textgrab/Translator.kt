@@ -203,6 +203,26 @@ object Translator {
     private suspend fun isDownloaded(code: String): Boolean =
         models.isModelDownloaded(TranslateRemoteModel.Builder(code).build()).await()
 
+    // ------------------------------------------------------ model management
+
+    /** Languages whose model is currently being downloaded from the language manager. */
+    val busyLanguages: MutableSet<String> = HashSet()
+
+    /** English ships with ML Kit and cannot be removed. */
+    fun isBuiltIn(code: String) = code == TranslateLanguage.ENGLISH
+
+    suspend fun downloadedLanguages(): Set<String> =
+        models.getDownloadedModels(TranslateRemoteModel::class.java).await()
+            .mapTo(HashSet()) { it.language } + TranslateLanguage.ENGLISH
+
+    suspend fun downloadLanguage(code: String) {
+        models.download(TranslateRemoteModel.Builder(code).build(), DownloadConditions.Builder().build()).await()
+    }
+
+    suspend fun deleteLanguage(code: String) {
+        if (isBuiltIn(code)) return
+        models.deleteDownloadedModel(TranslateRemoteModel.Builder(code).build()).await()
+    }
 }
 
 private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
