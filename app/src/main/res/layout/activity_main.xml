@@ -74,6 +74,28 @@
             android:text="@string/home_hint"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?android:textColorSecondary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:text="@string/adb_label"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?android:textColorSecondary" />
+
+        <TextView
+            android:id="@+id/adbCommand"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/adb_copy"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:padding="8dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textIsSelectable="false" />
     </LinearLayout>
 
     <!-- ============================== Viewer ============================ -->

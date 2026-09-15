@@ -88,6 +88,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             }
         }
 
+        val adbCommand = "adb shell am broadcast -a ${CaptureReceiver.ACTION_CAPTURE} -p $packageName"
+        binding.adbCommand.text = adbCommand
+        binding.adbCommand.setOnClickListener { copyToClipboard(adbCommand) }
+
         binding.btnBack.setOnClickListener { onBackFromViewer() }
         binding.btnSelectAll.setOnClickListener { binding.ocrView.selectAll() }
         binding.btnCopyAll.setOnClickListener {
