@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            val base = (32 * resources.displayMetrics.density).toInt()
+            val base = (24 * resources.displayMetrics.density).toInt()
             binding.topBar.updatePadding(top = bars.top, left = bars.left, right = bars.right)
             binding.homeGroup.updatePadding(top = base + bars.top, bottom = base + bars.bottom)
             insets
@@ -108,7 +108,12 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
         val adbCommand = "adb shell am broadcast -a ${CaptureReceiver.ACTION_CAPTURE} -p $packageName"
         binding.adbCommand.text = adbCommand
-        binding.adbCommand.setOnClickListener { copyToClipboard(adbCommand) }
+        binding.adbRow.setOnClickListener { copyToClipboard(adbCommand) }
+
+        binding.rowTargetLanguage.setOnClickListener { chooseTargetLanguage() }
+        binding.rowLanguagePacks.setOnClickListener {
+            LanguagePacksSheet(this) { refreshTranslationRows() }.show()
+        }
 
         binding.btnBack.setOnClickListener { onBackFromViewer() }
         binding.btnSelectAll.setOnClickListener { binding.ocrView.selectAll() }
@@ -154,6 +159,18 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.btnEnableCapture.isVisible =
             Build.VERSION.SDK_INT >= 31 && !isCaptureServiceEnabled()
         binding.btnSetAssistant.isVisible = !isAssistantApp()
+        val needsSetup = binding.btnEnableCapture.isVisible || binding.btnSetAssistant.isVisible
+        binding.setupHeader.isVisible = needsSetup
+        binding.setupCard.isVisible = needsSetup
+        refreshTranslationRows()
+    }
+
+    private fun refreshTranslationRows() {
+        binding.textTargetLanguage.text = Translator.displayName(Translator.defaultTarget(this))
+        lifecycleScope.launch {
+            val count = runCatching { Translator.downloadedLanguages().size }.getOrNull() ?: return@launch
+            binding.textLanguagePacks.text = getString(R.string.language_packs_summary, count)
+        }
     }
 
     /** The assistant role cannot be requested directly, only checked (API 29+). */
@@ -502,6 +519,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             .setSingleChoiceItems(names, codes.indexOf(Translator.defaultTarget(this))) { dialog, which ->
                 dialog.dismiss()
                 Translator.saveTarget(this, codes[which])
+                refreshTranslationRows()
                 if (binding.viewerGroup.isVisible) translateScreen()
             }
             .show()

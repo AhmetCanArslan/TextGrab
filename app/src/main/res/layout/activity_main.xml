@@ -7,105 +7,268 @@
     android:background="?android:colorBackground">
 
     <!-- ============================== Home ============================== -->
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
         android:id="@+id/homeGroup"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="32dp">
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingHorizontal="16dp">
 
-        <ImageView
-            android:layout_width="96dp"
-            android:layout_height="96dp"
-            android:src="@drawable/ic_tile"
-            app:tint="?attr/colorPrimary"
-            android:importantForAccessibility="no" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/app_name"
-            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="@string/home_subtitle"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?android:textColorSecondary" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnPick"
-            style="@style/Widget.Material3.Button"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:maxWidth="400dp"
-            android:text="@string/pick_image" />
+            android:layout_gravity="center_horizontal"
+            android:maxWidth="560dp"
+            android:orientation="vertical">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnScreenshot"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:maxWidth="400dp"
-            android:text="@string/latest_screenshot" />
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="4dp"
+                android:paddingVertical="8dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnEnableCapture"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:maxWidth="400dp"
-            android:text="@string/enable_instant_capture"
-            android:visibility="gone" />
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_tile"
+                    app:tint="?attr/colorPrimary" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSetAssistant"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:maxWidth="400dp"
-            android:text="@string/set_as_assistant"
-            android:visibility="gone" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:gravity="center"
-            android:text="@string/home_hint"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?android:textColorSecondary" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/app_name"
+                        android:textAppearance="?attr/textAppearanceHeadlineSmall" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="center"
-            android:text="@string/adb_label"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?android:textColorSecondary" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_tagline"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+            </LinearLayout>
 
-        <TextView
-            android:id="@+id/adbCommand"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:background="?attr/selectableItemBackground"
-            android:contentDescription="@string/adb_copy"
-            android:fontFamily="monospace"
-            android:gravity="center"
-            android:padding="8dp"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textIsSelectable="false" />
-    </LinearLayout>
+            <!-- Primary actions -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnPick"
+                    style="@style/HomeActionCard"
+                    android:layout_marginEnd="6dp"
+                    app:cardBackgroundColor="?attr/colorPrimary">
+
+                    <LinearLayout style="@style/HomeActionContent">
+
+                        <ImageView
+                            style="@style/HomeActionIcon"
+                            android:src="@drawable/ic_image"
+                            app:tint="?attr/colorOnPrimary" />
+
+                        <TextView
+                            style="@style/HomeActionLabel"
+                            android:text="@string/pick_image"
+                            android:textColor="?attr/colorOnPrimary" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnScreenshot"
+                    style="@style/HomeActionCard"
+                    android:layout_marginStart="6dp"
+                    app:cardBackgroundColor="?attr/colorSecondaryContainer">
+
+                    <LinearLayout style="@style/HomeActionContent">
+
+                        <ImageView
+                            style="@style/HomeActionIcon"
+                            android:src="@drawable/ic_tile"
+                            app:tint="?attr/colorOnSecondaryContainer" />
+
+                        <TextView
+                            style="@style/HomeActionLabel"
+                            android:text="@string/latest_screenshot"
+                            android:textColor="?attr/colorOnSecondaryContainer" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Setup (only while something is left to set up) -->
+            <TextView
+                android:id="@+id/setupHeader"
+                style="@style/HomeSectionHeader"
+                android:text="@string/section_setup" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/setupCard"
+                style="@style/HomeCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/btnEnableCapture"
+                        style="@style/HomeRow">
+
+                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_bolt" />
+
+                        <LinearLayout style="@style/HomeRowText">
+
+                            <TextView style="@style/HomeRowTitle" android:text="@string/enable_instant_capture" />
+
+                            <TextView style="@style/HomeRowSummary" android:text="@string/enable_instant_capture_summary" />
+                        </LinearLayout>
+
+                        <ImageView style="@style/HomeRowChevron" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnSetAssistant"
+                        style="@style/HomeRow">
+
+                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_mic" />
+
+                        <LinearLayout style="@style/HomeRowText">
+
+                            <TextView style="@style/HomeRowTitle" android:text="@string/set_as_assistant" />
+
+                            <TextView style="@style/HomeRowSummary" android:text="@string/set_as_assistant_summary" />
+                        </LinearLayout>
+
+                        <ImageView style="@style/HomeRowChevron" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Translation -->
+            <TextView
+                style="@style/HomeSectionHeader"
+                android:text="@string/section_translation" />
+
+            <com.google.android.material.card.MaterialCardView style="@style/HomeCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/rowTargetLanguage"
+                        style="@style/HomeRow">
+
+                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_translate" />
+
+                        <LinearLayout style="@style/HomeRowText">
+
+                            <TextView style="@style/HomeRowTitle" android:text="@string/translate_to" />
+
+                            <TextView
+                                android:id="@+id/textTargetLanguage"
+                                style="@style/HomeRowSummary" />
+                        </LinearLayout>
+
+                        <ImageView style="@style/HomeRowChevron" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/rowLanguagePacks"
+                        style="@style/HomeRow">
+
+                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_download" />
+
+                        <LinearLayout style="@style/HomeRowText">
+
+                            <TextView style="@style/HomeRowTitle" android:text="@string/language_packs" />
+
+                            <TextView
+                                android:id="@+id/textLanguagePacks"
+                                style="@style/HomeRowSummary" />
+                        </LinearLayout>
+
+                        <ImageView style="@style/HomeRowChevron" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Tips & advanced -->
+            <TextView
+                style="@style/HomeSectionHeader"
+                android:text="@string/section_more" />
+
+            <com.google.android.material.card.MaterialCardView style="@style/HomeCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        style="@style/HomeRow"
+                        android:background="@null"
+                        android:clickable="false">
+
+                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_info" />
+
+                        <LinearLayout style="@style/HomeRowText">
+
+                            <TextView style="@style/HomeRowSummary" android:text="@string/home_hint" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/adbRow"
+                        style="@style/HomeRow"
+                        android:contentDescription="@string/adb_copy">
+
+                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_code" />
+
+                        <LinearLayout style="@style/HomeRowText">
+
+                            <TextView style="@style/HomeRowTitle" android:text="@string/adb_label" />
+
+                            <TextView
+                                android:id="@+id/adbCommand"
+                                style="@style/HomeRowSummary"
+                                android:layout_marginTop="4dp"
+                                android:fontFamily="monospace"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            style="@style/HomeRowChevron"
+                            android:src="@drawable/ic_copy" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:paddingHorizontal="16dp"
+                android:text="@string/home_subtitle"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <!-- ============================== Viewer ============================ -->
     <FrameLayout
