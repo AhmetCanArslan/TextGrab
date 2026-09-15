@@ -88,9 +88,16 @@ class SelectableOcrView @JvmOverloads constructor(
     private val handleRadius get() = dp(7f)
     private val handleTouchRadius get() = dp(26f)
 
+    private var lines: LineIndex? = null
+
+    /** Touch-to-handle offset captured on grab, so the finger never hides the target. */
+    private var dragOffsetX = 0f
+    private var dragOffsetY = 0f
+
     fun setContent(bmp: Bitmap, ocr: OcrEngine.Result) {
         bitmap = bmp
         result = ocr
+        lines = LineIndex(ocr.words)
         selStart = -1
         selEnd = -1
         if (width > 0 && height > 0) resetFit()
@@ -100,6 +107,7 @@ class SelectableOcrView @JvmOverloads constructor(
     fun clear() {
         bitmap = null
         result = null
+        lines = null
         selStart = -1
         selEnd = -1
         invalidate()
@@ -297,6 +305,11 @@ class SelectableOcrView @JvmOverloads constructor(
                     else -> DragMode.NONE
                 }
                 if (dragMode != DragMode.NONE) {
+                    // Aim at the middle of the handle's word, not at the finger.
+                    val start = dragMode == DragMode.HANDLE_START
+                    val box = handleWordRect(start)
+                    dragOffsetX = (if (start) box.left else box.right) - event.x
+                    dragOffsetY = box.centerY() - event.y
                     parent?.requestDisallowInterceptTouchEvent(true)
                     // Keep handle drags away from the gesture detectors, otherwise
                     // their long-press timer fires mid-drag and resets the selection.
@@ -324,7 +337,8 @@ class SelectableOcrView @JvmOverloads constructor(
     }
 
     private fun onSelectionDrag(x: Float, y: Float) {
-        val nearest = nearestWord(x, y)
+        val nearest = if (dragMode == DragMode.SWEEP) nearestWord(x, y)
+        else nearestWord(x + dragOffsetX, y + dragOffsetY)
         if (nearest == -1) return
         val oldStart = selStart
         val oldEnd = selEnd
@@ -370,41 +384,29 @@ class SelectableOcrView @JvmOverloads constructor(
     }
 
     private fun wordAt(vx: Float, vy: Float, forgiving: Boolean): Int {
-        val r = result ?: return -1
+        val index = lines ?: return -1
         val (x, y) = toBitmapSpace(vx, vy)
-        val slop = if (forgiving) dp(6f) / currentScale else 0f
-        r.words.forEachIndexed { i, w ->
-            if (x >= w.box.left - slop && x <= w.box.right + slop &&
-                y >= w.box.top - slop && y <= w.box.bottom + slop
-            ) return i
-        }
-        return -1
+        return index.wordAt(x, y, slop = if (forgiving) dp(6f) / currentScale else 0f)
     }
 
     private fun nearestWord(vx: Float, vy: Float): Int {
-        val r = result ?: return -1
+        val index = lines ?: return -1
         val (x, y) = toBitmapSpace(vx, vy)
-        var best = -1
-        var bestDist = Float.MAX_VALUE
-        r.words.forEachIndexed { i, w ->
-            val dx = max(0f, max(w.box.left - x, x - w.box.right))
-            val dy = max(0f, max(w.box.top - y, y - w.box.bottom))
-            // Weight vertical distance heavier so sweeping follows lines naturally.
-            val d = dx * dx + dy * dy * 9f
-            if (d < bestDist) {
-                bestDist = d
-                best = i
-            }
+        return index.nearestWord(x, y)
+    }
+
+    /** View-space box of the word under the start or end handle, grown to the selection padding. */
+    private fun handleWordRect(start: Boolean): RectF {
+        val words = result!!.words
+        return RectF(words[if (start) selStart else selEnd].box).also {
+            imageMatrix.mapRect(it)
+            it.inset(-dp(3f), -dp(3f))
         }
-        return best
     }
 
     private fun hitsHandle(x: Float, y: Float, start: Boolean): Boolean {
-        if (selStart == -1) return false
-        val r = result ?: return false
-        val rect = RectF(if (start) r.words[selStart].box else r.words[selEnd].box)
-        imageMatrix.mapRect(rect)
-        rect.inset(-dp(3f), -dp(3f))
+        if (selStart == -1 || result == null) return false
+        val rect = handleWordRect(start)
         val hx = if (start) rect.left else rect.right
         val hy = if (start) rect.top - handleRadius * 0.7f else rect.bottom + handleRadius * 0.7f
         return abs(x - hx) < handleTouchRadius && abs(y - hy) < handleTouchRadius
