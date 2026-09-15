@@ -72,9 +72,9 @@ Slovak, Slovenian, Estonian, Latvian, Lithuanian, Albanian, Catalan, Basque,
 Galician, Icelandic, Irish, Maltese, Swahili, Tagalog, Vietnamese (partial,
 some diacritics may be missed) and more, plus digits and common punctuation.
 
-Chinese, Japanese, Korean and Devanagari need separate ML Kit model packs
-(roughly 20 MB each). They are not included yet but are easy to add. Open an
-issue if you want one of them.
+Chinese, Japanese and Korean (each also reads Latin text) are bundled too.
+They only run when the Latin recognizer's result looks unreliable, so Latin
+text stays fast. Arabic and Devanagari are not supported yet.
 
 ## Building
 

@@ -5,17 +5,24 @@ import android.graphics.RectF
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
+import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
- * Thin wrapper around ML Kit's bundled on-device text recognizer.
- * The model ships inside the APK, so recognition works fully offline
- * and without Google Play services (GrapheneOS etc.).
+ * Wrapper around ML Kit's bundled on-device text recognizers (Latin, Chinese,
+ * Japanese, Korean). All models ship inside the APK, so recognition works
+ * fully offline and without Google Play services (GrapheneOS etc.).
  */
 object OcrEngine {
 
@@ -56,30 +63,56 @@ object OcrEngine {
 
     private class Line(val box: RectF, val words: List<Pair<String, RectF>>)
 
+    /** Filtered recognizer output plus a quality score used to pick between scripts. */
+    private class Scored(val lines: List<Line>, val score: Float, val meanConfidence: Float)
+
     /** Words below this confidence are dropped; icons usually land here. */
     private const val MIN_CONFIDENCE = 0.45f
 
-    private val recognizer by lazy {
-        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    }
+    /** Latin results below this mean confidence trigger the CJK recognizers. */
+    private const val LATIN_TRUSTED_CONFIDENCE = 0.8f
+
+    private val latin by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
+    private val chinese by lazy { TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()) }
+    private val japanese by lazy { TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build()) }
+    private val korean by lazy { TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()) }
 
     fun warmUp() {
         // Trigger lazy init + model load off the critical path.
         val bmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
-        recognizer.process(InputImage.fromBitmap(bmp, 0))
+        latin.process(InputImage.fromBitmap(bmp, 0))
             .addOnCompleteListener { bmp.recycle() }
     }
 
-    suspend fun recognize(bitmap: Bitmap): Result =
+    suspend fun recognize(bitmap: Bitmap): Result {
+        val image = InputImage.fromBitmap(bitmap, 0)
+        var best = score(latin.run(image))
+        // Latin output on CJK text is low-confidence garbage; only then pay
+        // for the other models, and keep whichever reads the image best.
+        if (best.lines.isEmpty() || best.meanConfidence < LATIN_TRUSTED_CONFIDENCE) {
+            val others = coroutineScope {
+                listOf(chinese, japanese, korean)
+                    .map { async { score(it.run(image)) } }
+                    .awaitAll()
+            }
+            others.maxByOrNull { it.score }?.let { if (it.score > best.score) best = it }
+        }
+        return buildResult(best.lines)
+    }
+
+    private suspend fun TextRecognizer.run(image: InputImage): Text =
         suspendCancellableCoroutine { cont ->
-            recognizer.process(InputImage.fromBitmap(bitmap, 0))
-                .addOnSuccessListener { text -> cont.resume(buildResult(filter(text))) }
-                .addOnFailureListener { e -> cont.resumeWithException(e) }
+            process(image)
+                .addOnSuccessListener { cont.resume(it) }
+                .addOnFailureListener { cont.resumeWithException(it) }
         }
 
-    /** Drops icon-like noise; line boxes are rebuilt from the words that remain. */
-    private fun filter(text: Text): List<Line> {
+    /** Drops icon-like noise and scores the result. */
+    private fun score(text: Text): Scored {
         val lines = ArrayList<Line>()
+        var score = 0f
+        var confSum = 0f
+        var confCount = 0
         for (block in text.textBlocks) {
             for (line in block.lines) {
                 val words = ArrayList<Pair<String, RectF>>()
@@ -88,8 +121,13 @@ object OcrEngine {
                     val t = e.text.trim()
                     // Some ML Kit builds report 0 when confidence is unavailable; don't filter on that.
                     val conf = e.confidence.takeIf { it > 0f }
+                    if (conf != null) {
+                        confSum += conf
+                        confCount++
+                    }
                     if (isNoise(t, conf)) continue
                     words.add(t to RectF(box))
+                    score += t.count { it.isLetterOrDigit() } * (conf ?: 0.7f)
                 }
                 if (words.isEmpty()) continue
                 // Rebuild the line box from kept words, so a dropped icon doesn't inflate it.
@@ -97,7 +135,8 @@ object OcrEngine {
                 lines.add(Line(lineBox, words))
             }
         }
-        return lines
+        val mean = if (confCount > 0) confSum / confCount else 1f
+        return Scored(lines, score, mean)
     }
 
     private fun isNoise(t: String, conf: Float?): Boolean {
