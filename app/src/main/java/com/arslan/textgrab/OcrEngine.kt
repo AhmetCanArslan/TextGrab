@@ -7,6 +7,8 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.max
+import kotlin.math.min
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
@@ -16,12 +18,16 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  */
 object OcrEngine {
 
-    /** One recognized word with its bounding box in bitmap pixel coordinates. */
+    /**
+     * One recognized word with its bounding box in bitmap pixel coordinates.
+     * [lineId] is the recognized line; [rowId] groups lines that sit side by
+     * side on the same visual row. Words are stored in reading order.
+     */
     data class Word(
         val text: String,
         val box: RectF,
         val lineId: Int,
-        val blockId: Int,
+        val rowId: Int,
     )
 
     data class Result(
@@ -35,15 +41,9 @@ object OcrEngine {
             val sb = StringBuilder()
             for (i in start..end) {
                 if (i > start) {
-                    val prev = words[i - 1]
-                    val cur = words[i]
-                    sb.append(
-                        when {
-                            prev.blockId != cur.blockId -> "\n\n"
-                            prev.lineId != cur.lineId -> "\n"
-                            else -> " "
-                        }
-                    )
+                    // ML Kit splits screenshots into many tiny blocks; treating
+                    // those as paragraphs produced lots of empty lines.
+                    sb.append(if (words[i - 1].rowId != words[i].rowId) "\n" else " ")
                 }
                 sb.append(words[i].text)
             }
@@ -52,6 +52,8 @@ object OcrEngine {
 
         val fullText: String get() = if (isEmpty) "" else textOf(0, words.size - 1)
     }
+
+    private class Line(val box: RectF, val words: List<Pair<String, RectF>>)
 
     private val recognizer by lazy {
         TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -68,22 +70,50 @@ object OcrEngine {
         suspendCancellableCoroutine { cont ->
             recognizer.process(InputImage.fromBitmap(bitmap, 0))
                 .addOnSuccessListener { text ->
-                    val words = ArrayList<Word>()
-                    val lineBoxes = ArrayList<RectF>()
-                    var lineId = 0
-                    text.textBlocks.forEachIndexed { blockId, block ->
+                    val lines = ArrayList<Line>()
+                    for (block in text.textBlocks) {
                         for (line in block.lines) {
-                            line.boundingBox?.let { lineBoxes.add(RectF(it)) }
-                            for (element in line.elements) {
-                                val box = element.boundingBox ?: continue
-                                if (element.text.isBlank()) continue
-                                words.add(Word(element.text, RectF(box), lineId, blockId))
+                            val words = line.elements.mapNotNull { e ->
+                                val box = e.boundingBox ?: return@mapNotNull null
+                                if (e.text.isBlank()) null else e.text to RectF(box)
                             }
-                            lineId++
+                            if (words.isEmpty()) continue
+                            val box = line.boundingBox?.let { RectF(it) }
+                                ?: RectF(words[0].second).apply { words.forEach { union(it.second) } }
+                            lines.add(Line(box, words))
                         }
                     }
-                    cont.resume(Result(words, lineBoxes))
+                    cont.resume(buildResult(lines))
                 }
                 .addOnFailureListener { e -> cont.resumeWithException(e) }
         }
+
+    /** Orders lines top-to-bottom, grouping vertically overlapping lines into
+     *  one row read left-to-right, so selection follows the visual layout. */
+    private fun buildResult(lines: List<Line>): Result {
+        val byTop = lines.sortedBy { it.box.centerY() }
+        val rows = ArrayList<MutableList<Line>>()
+        for (line in byTop) {
+            val row = rows.lastOrNull()
+            if (row != null && sameRow(row[0].box, line.box)) row.add(line) else rows.add(mutableListOf(line))
+        }
+        val words = ArrayList<Word>()
+        val lineBoxes = ArrayList<RectF>()
+        var lineId = 0
+        rows.forEachIndexed { rowId, row ->
+            for (line in row.sortedBy { it.box.left }) {
+                lineBoxes.add(line.box)
+                for ((t, box) in line.words.sortedBy { it.second.left }) {
+                    words.add(Word(t, box, lineId, rowId))
+                }
+                lineId++
+            }
+        }
+        return Result(words, lineBoxes)
+    }
+
+    private fun sameRow(a: RectF, b: RectF): Boolean {
+        val overlap = min(a.bottom, b.bottom) - max(a.top, b.top)
+        return overlap > 0.5f * min(a.height(), b.height())
+    }
 }
