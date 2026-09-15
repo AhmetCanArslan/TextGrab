@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.os.Build
 import android.util.AttributeSet
@@ -38,8 +39,31 @@ class SelectableOcrView @JvmOverloads constructor(
 
     var listener: Listener? = null
 
+    /**
+     * Capture preview style: the image is shrunk below [topInset] with rounded
+     * corners over a blurred copy of itself, so text at the screen edges stays
+     * easy to reach. Otherwise the image fills the view on a dark background.
+     */
+    var capturePreview = false
+        set(value) {
+            if (field == value) return
+            field = value
+            backdrop = bitmap?.takeIf { value }?.let { BlurredBackdrop(it) }
+            refit()
+        }
+
+    /** Space reserved at the top for the toolbar; only applies to [capturePreview]. */
+    var topInset = 0f
+        set(value) {
+            if (field == value) return
+            field = value
+            refit()
+        }
+
     private var bitmap: Bitmap? = null
     private var result: OcrEngine.Result? = null
+    private var lines: LineIndex? = null
+    private var backdrop: BlurredBackdrop? = null
 
     private val imageMatrix = Matrix()
     private val inverseMatrix = Matrix()
@@ -52,6 +76,10 @@ class SelectableOcrView @JvmOverloads constructor(
 
     private var dragMode = DragMode.NONE
     private var dragAnchorWord = -1
+
+    /** Touch-to-handle offset captured on grab, so the finger never hides the target. */
+    private var dragOffsetX = 0f
+    private var dragOffsetY = 0f
 
     private enum class DragMode { NONE, SWEEP, HANDLE_START, HANDLE_END }
 
@@ -84,20 +112,23 @@ class SelectableOcrView @JvmOverloads constructor(
     }
     private val backgroundPaint = Paint().apply { color = 0xFF101014.toInt() }
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val clipPath = Path()
+    private val tmpRect = RectF()
 
     private val handleRadius get() = dp(7f)
     private val handleTouchRadius get() = dp(26f)
 
-    private var lines: LineIndex? = null
-
-    /** Touch-to-handle offset captured on grab, so the finger never hides the target. */
-    private var dragOffsetX = 0f
-    private var dragOffsetY = 0f
+    // Layout derived from the preview style.
+    private val fitFraction get() = if (capturePreview) CAPTURE_FIT_FRACTION else 1f
+    private val effectiveTopInset get() = if (capturePreview) topInset else 0f
+    /** Share of the free vertical space placed above the image: 0.5 centers it. */
+    private val topGapShare get() = if (capturePreview) 0.2f else 0.5f
 
     fun setContent(bmp: Bitmap, ocr: OcrEngine.Result) {
         bitmap = bmp
         result = ocr
         lines = LineIndex(ocr.words)
+        backdrop = if (capturePreview) BlurredBackdrop(bmp) else null
         selStart = -1
         selEnd = -1
         if (width > 0 && height > 0) resetFit()
@@ -108,6 +139,7 @@ class SelectableOcrView @JvmOverloads constructor(
         bitmap = null
         result = null
         lines = null
+        backdrop = null
         selStart = -1
         selEnd = -1
         invalidate()
@@ -139,81 +171,143 @@ class SelectableOcrView @JvmOverloads constructor(
             return r.textOf(selStart, selEnd)
         }
 
+    // ----------------------------------------------------------------- layout
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (bitmap != null) resetFit()
         if (selStart != -1) notifySelection()
     }
 
+    private fun refit() {
+        if (bitmap == null || width == 0 || height == 0) return
+        resetFit()
+        if (selStart != -1) notifySelection()
+        invalidate()
+    }
+
     private fun resetFit() {
         val bmp = bitmap ?: return
-        fitScale = min(width.toFloat() / bmp.width, height.toFloat() / bmp.height)
+        val availHeight = max(1f, height - effectiveTopInset)
+        fitScale = min(width.toFloat() / bmp.width, availHeight / bmp.height) * fitFraction
         currentScale = fitScale
         imageMatrix.reset()
         imageMatrix.postScale(fitScale, fitScale)
-        imageMatrix.postTranslate(
-            (width - bmp.width * fitScale) / 2f,
-            (height - bmp.height * fitScale) / 2f
-        )
+        imageMatrix.postTranslate((width - bmp.width * fitScale) / 2f, fittedTop(bmp.height * fitScale))
         syncInverse()
+    }
+
+    /** Top edge for content of [contentHeight] that fits in the space below the inset. */
+    private fun fittedTop(contentHeight: Float) =
+        effectiveTopInset + (height - effectiveTopInset - contentHeight) * topGapShare
+
+    /** Keeps the image centered while it fits, and its edges on screen once zoomed past it. */
+    private fun clampTranslation() {
+        val rect = mappedImageRect() ?: return
+        val dx = if (rect.width() <= width) {
+            (width - rect.width()) / 2f - rect.left
+        } else when {
+            rect.left > 0 -> -rect.left
+            rect.right < width -> width - rect.right
+            else -> 0f
+        }
+        val inset = effectiveTopInset
+        val dy = if (rect.height() <= height - inset) {
+            fittedTop(rect.height()) - rect.top
+        } else when {
+            rect.top > inset -> inset - rect.top
+            rect.bottom < height -> height - rect.bottom
+            else -> 0f
+        }
+        imageMatrix.postTranslate(dx, dy)
+    }
+
+    /** Re-clamps after any matrix change and refreshes everything that depends on it. */
+    private fun onTransformed() {
+        clampTranslation()
+        syncInverse()
+        invalidate()
+        if (selStart != -1) notifySelection()
+    }
+
+    private fun zoomTo(target: Float, focusX: Float, focusY: Float) {
+        val factor = target / currentScale
+        currentScale = target
+        imageMatrix.postScale(factor, factor, focusX, focusY)
+        onTransformed()
     }
 
     private fun syncInverse() {
         imageMatrix.invert(inverseMatrix)
     }
 
+    private fun mappedImageRect(): RectF? {
+        val bmp = bitmap ?: return null
+        return RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()).also { imageMatrix.mapRect(it) }
+    }
+
     // ---------------------------------------------------------------- drawing
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
-        val bmp = bitmap ?: return
-        canvas.drawBitmap(bmp, imageMatrix, bitmapPaint)
+        val bmp = bitmap
+        val blur = backdrop
+        if (bmp != null && blur != null) blur.draw(canvas, width, height)
+        else canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
+        if (bmp == null) return
 
-        val r = result ?: return
-        val tmp = RectF()
-
-        // Subtle hint that text was found and is selectable.
-        if (selStart == -1) {
-            for (box in r.lineBoxes) {
-                tmp.set(box)
-                imageMatrix.mapRect(tmp)
-                tmp.inset(-dp(2f), -dp(2f))
-                val radius = tmp.height() * 0.25f
-                canvas.drawRoundRect(tmp, radius, radius, hintPaint)
-                canvas.drawRoundRect(tmp, radius, radius, hintStroke)
-            }
-            return
+        if (blur != null) {
+            val radius = dp(PREVIEW_CORNER_RADIUS_DP)
+            clipPath.rewind()
+            clipPath.addRoundRect(mappedImageRect()!!, radius, radius, Path.Direction.CW)
+            canvas.save()
+            canvas.clipPath(clipPath)
+            canvas.drawBitmap(bmp, imageMatrix, bitmapPaint)
+            canvas.restore()
+        } else {
+            canvas.drawBitmap(bmp, imageMatrix, bitmapPaint)
         }
 
-        // Selection: one rounded rect per line, spanning selected words.
+        val r = result ?: return
+        if (selStart == -1) drawHints(canvas, r) else drawSelection(canvas, r)
+    }
+
+    /** Subtle hint that text was found and is selectable. */
+    private fun drawHints(canvas: Canvas, r: OcrEngine.Result) {
+        for (box in r.lineBoxes) {
+            tmpRect.set(box)
+            imageMatrix.mapRect(tmpRect)
+            tmpRect.inset(-dp(2f), -dp(2f))
+            val radius = tmpRect.height() * 0.25f
+            canvas.drawRoundRect(tmpRect, radius, radius, hintPaint)
+            canvas.drawRoundRect(tmpRect, radius, radius, hintStroke)
+        }
+    }
+
+    /** One rounded rect per line spanning the selected words, plus iOS-style handles. */
+    private fun drawSelection(canvas: Canvas, r: OcrEngine.Result) {
+        var first: RectF? = null
+        var last: RectF? = null
         var i = selStart
-        var firstRect: RectF? = null
-        var lastRect: RectF? = null
         while (i <= selEnd) {
-            val lineId = r.words[i].lineId
             val union = RectF(r.words[i].box)
             var j = i
-            while (j + 1 <= selEnd && r.words[j + 1].lineId == lineId) {
-                j++
-                union.union(r.words[j].box)
+            while (j + 1 <= selEnd && r.words[j + 1].lineId == r.words[i].lineId) {
+                union.union(r.words[++j].box)
             }
             imageMatrix.mapRect(union)
             union.inset(-dp(3f), -dp(3f))
-            val radius = dp(4f)
-            canvas.drawRoundRect(union, radius, radius, selectionPaint)
-            if (firstRect == null) firstRect = RectF(union)
-            lastRect = RectF(union)
+            canvas.drawRoundRect(union, dp(4f), dp(4f), selectionPaint)
+            if (first == null) first = union
+            last = union
             i = j + 1
         }
-
-        // iOS-style selection handles: stem + ball.
-        firstRect?.let { fr ->
-            canvas.drawLine(fr.left, fr.top, fr.left, fr.bottom, handleStemPaint)
-            canvas.drawCircle(fr.left, fr.top - handleRadius * 0.7f, handleRadius, handlePaint)
+        first?.let {
+            canvas.drawLine(it.left, it.top, it.left, it.bottom, handleStemPaint)
+            canvas.drawCircle(it.left, it.top - handleRadius * 0.7f, handleRadius, handlePaint)
         }
-        lastRect?.let { lr ->
-            canvas.drawLine(lr.right, lr.top, lr.right, lr.bottom, handleStemPaint)
-            canvas.drawCircle(lr.right, lr.bottom + handleRadius * 0.7f, handleRadius, handlePaint)
+        last?.let {
+            canvas.drawLine(it.right, it.top, it.right, it.bottom, handleStemPaint)
+            canvas.drawCircle(it.right, it.bottom + handleRadius * 0.7f, handleRadius, handlePaint)
         }
     }
 
@@ -225,12 +319,7 @@ class SelectableOcrView @JvmOverloads constructor(
                 if (dragMode != DragMode.NONE) return true
                 val target = (currentScale * detector.scaleFactor)
                     .coerceIn(fitScale * 0.8f, fitScale * 12f)
-                val factor = target / currentScale
-                currentScale = target
-                imageMatrix.postScale(factor, factor, detector.focusX, detector.focusY)
-                clampTranslation()
-                syncInverse()
-                invalidate()
+                zoomTo(target, detector.focusX, detector.focusY)
                 return true
             }
         })
@@ -244,15 +333,12 @@ class SelectableOcrView @JvmOverloads constructor(
             ): Boolean {
                 if (dragMode != DragMode.NONE || scaleDetector.isInProgress) return false
                 imageMatrix.postTranslate(-dx, -dy)
-                clampTranslation()
-                syncInverse()
-                invalidate()
-                if (selStart != -1) notifySelection()
+                onTransformed()
                 return true
             }
 
             override fun onSingleTapUp(e: MotionEvent): Boolean {
-                val hit = wordAt(e.x, e.y, forgiving = true)
+                val hit = wordAt(e.x, e.y)
                 if (hit != -1) {
                     selStart = hit
                     selEnd = hit
@@ -266,19 +352,12 @@ class SelectableOcrView @JvmOverloads constructor(
             }
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                val target = if (currentScale > fitScale * 1.4f) fitScale else fitScale * 2.5f
-                val factor = target / currentScale
-                currentScale = target
-                imageMatrix.postScale(factor, factor, e.x, e.y)
-                clampTranslation()
-                syncInverse()
-                invalidate()
-                if (selStart != -1) notifySelection()
+                zoomTo(if (currentScale > fitScale * 1.4f) fitScale else fitScale * 2.5f, e.x, e.y)
                 return true
             }
 
             override fun onLongPress(e: MotionEvent) {
-                val hit = wordAt(e.x, e.y, forgiving = true)
+                val hit = wordAt(e.x, e.y)
                 if (hit != -1) {
                     dragMode = DragMode.SWEEP
                     dragAnchorWord = hit
@@ -377,16 +456,13 @@ class SelectableOcrView @JvmOverloads constructor(
     // ------------------------------------------------------------- hit tests
 
     /** Maps a view point into bitmap space. */
-    private fun toBitmapSpace(x: Float, y: Float): Pair<Float, Float> {
-        val pts = floatArrayOf(x, y)
-        inverseMatrix.mapPoints(pts)
-        return pts[0] to pts[1]
-    }
+    private fun toBitmapSpace(x: Float, y: Float): FloatArray =
+        floatArrayOf(x, y).also { inverseMatrix.mapPoints(it) }
 
-    private fun wordAt(vx: Float, vy: Float, forgiving: Boolean): Int {
+    private fun wordAt(vx: Float, vy: Float): Int {
         val index = lines ?: return -1
         val (x, y) = toBitmapSpace(vx, vy)
-        return index.wordAt(x, y, slop = if (forgiving) dp(6f) / currentScale else 0f)
+        return index.wordAt(x, y, slop = dp(6f) / currentScale)
     }
 
     private fun nearestWord(vx: Float, vy: Float): Int {
@@ -412,29 +488,6 @@ class SelectableOcrView @JvmOverloads constructor(
         return abs(x - hx) < handleTouchRadius && abs(y - hy) < handleTouchRadius
     }
 
-    // ------------------------------------------------------------ helpers
-
-    private fun clampTranslation() {
-        val bmp = bitmap ?: return
-        val rect = RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat())
-        imageMatrix.mapRect(rect)
-        var dx = 0f
-        var dy = 0f
-        if (rect.width() <= width) {
-            dx = (width - rect.width()) / 2f - rect.left
-        } else {
-            if (rect.left > 0) dx = -rect.left
-            if (rect.right < width) dx = width - rect.right
-        }
-        if (rect.height() <= height) {
-            dy = (height - rect.height()) / 2f - rect.top
-        } else {
-            if (rect.top > 0) dy = -rect.top
-            if (rect.bottom < height) dy = height - rect.bottom
-        }
-        imageMatrix.postTranslate(dx, dy)
-    }
-
     private fun notifySelection() {
         val r = result
         if (r == null || selStart == -1) {
@@ -445,5 +498,11 @@ class SelectableOcrView @JvmOverloads constructor(
         for (i in selStart..selEnd) anchor.union(r.words[i].box)
         imageMatrix.mapRect(anchor)
         listener?.onSelectionChanged(r.textOf(selStart, selEnd), anchor)
+    }
+
+    private companion object {
+        /** Share of the free area a capture preview fills. */
+        const val CAPTURE_FIT_FRACTION = 0.87f
+        const val PREVIEW_CORNER_RADIUS_DP = 24f
     }
 }

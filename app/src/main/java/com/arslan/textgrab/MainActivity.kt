@@ -77,6 +77,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
 
         binding.ocrView.listener = this
+        // Capture previews sit below the toolbar instead of under it.
+        binding.topBar.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+            binding.ocrView.topInset = v.bottom.toFloat()
+        }
 
         binding.btnPick.setOnClickListener {
             pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
@@ -197,7 +201,15 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     // ------------------------------------------------------------- image flow
 
+    /** Captures get the toolbar in its own strip above the preview; other images keep the overlay scrim. */
+    private fun setCapturePreview(enabled: Boolean) {
+        binding.ocrView.capturePreview = enabled
+        if (enabled) binding.topBar.background = null
+        else binding.topBar.setBackgroundResource(R.drawable.top_scrim)
+    }
+
     private fun openImage(uri: Uri) {
+        setCapturePreview(false)
         showViewer(loading = true)
         lifecycleScope.launch {
             try {
@@ -216,6 +228,8 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun openBitmap(bitmap: Bitmap) {
+        // Only instant captures arrive here; shrink them so edge text is reachable.
+        setCapturePreview(true)
         showViewer(loading = true)
         lifecycleScope.launch { processBitmap(bitmap) }
     }
