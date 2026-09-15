@@ -19,6 +19,7 @@
     <string name="view_as_text">Als Text anzeigen</string>
     <string name="recognized_text">Erkannter Text</string>
 
+    <string name="set_as_assistant">Als Assistenz-App festlegen</string>
     <string name="adb_label">Aufnahme per adb auslösen (tippen zum Kopieren):</string>
     <string name="adb_copy">adb-Befehl kopieren</string>
     <string name="enable_instant_capture">Sofortaufnahme aktivieren</string>

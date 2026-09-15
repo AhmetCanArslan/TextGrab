@@ -88,6 +88,14 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             }
         }
 
+        binding.btnSetAssistant.setOnClickListener {
+            runCatching {
+                startActivity(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+            }.onFailure {
+                runCatching { startActivity(Intent(android.provider.Settings.ACTION_VOICE_INPUT_SETTINGS)) }
+            }
+        }
+
         val adbCommand = "adb shell am broadcast -a ${CaptureReceiver.ACTION_CAPTURE} -p $packageName"
         binding.adbCommand.text = adbCommand
         binding.adbCommand.setOnClickListener { copyToClipboard(adbCommand) }
@@ -128,6 +136,14 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         // Offer the accessibility-based instant capture where supported.
         binding.btnEnableCapture.isVisible =
             Build.VERSION.SDK_INT >= 31 && !isCaptureServiceEnabled()
+        binding.btnSetAssistant.isVisible = !isAssistantApp()
+    }
+
+    /** The assistant role cannot be requested directly, only checked (API 29+). */
+    private fun isAssistantApp(): Boolean {
+        if (Build.VERSION.SDK_INT < 29) return false
+        val roles = getSystemService(android.app.role.RoleManager::class.java) ?: return false
+        return roles.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT)
     }
 
     /** Checks the system setting rather than the live service instance, which

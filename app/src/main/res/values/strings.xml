@@ -23,6 +23,7 @@
     <string name="enable_instant_capture">Enable instant capture</string>
     <string name="a11y_label">TextGrab instant capture</string>
     <string name="a11y_description">Lets the OCR screenshot tile capture the screen by itself, so one tap on the tile is enough. TextGrab only takes a screenshot when you tap the tile. It does not read screen content, does not observe your input and has no internet access.</string>
+    <string name="set_as_assistant">Set as assistant app</string>
     <string name="adb_label">Trigger a capture via adb (tap to copy):</string>
     <string name="adb_copy">Copy adb command</string>
     <string name="capture_failed">Screen capture failed, opening latest screenshot instead</string>
