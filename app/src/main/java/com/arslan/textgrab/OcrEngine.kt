@@ -3,6 +3,7 @@ package com.arslan.textgrab
 import android.graphics.Bitmap
 import android.graphics.RectF
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlin.coroutines.resume
@@ -55,6 +56,9 @@ object OcrEngine {
 
     private class Line(val box: RectF, val words: List<Pair<String, RectF>>)
 
+    /** Words below this confidence are dropped; icons usually land here. */
+    private const val MIN_CONFIDENCE = 0.45f
+
     private val recognizer by lazy {
         TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     }
@@ -69,24 +73,43 @@ object OcrEngine {
     suspend fun recognize(bitmap: Bitmap): Result =
         suspendCancellableCoroutine { cont ->
             recognizer.process(InputImage.fromBitmap(bitmap, 0))
-                .addOnSuccessListener { text ->
-                    val lines = ArrayList<Line>()
-                    for (block in text.textBlocks) {
-                        for (line in block.lines) {
-                            val words = line.elements.mapNotNull { e ->
-                                val box = e.boundingBox ?: return@mapNotNull null
-                                if (e.text.isBlank()) null else e.text to RectF(box)
-                            }
-                            if (words.isEmpty()) continue
-                            val box = line.boundingBox?.let { RectF(it) }
-                                ?: RectF(words[0].second).apply { words.forEach { union(it.second) } }
-                            lines.add(Line(box, words))
-                        }
-                    }
-                    cont.resume(buildResult(lines))
-                }
+                .addOnSuccessListener { text -> cont.resume(buildResult(filter(text))) }
                 .addOnFailureListener { e -> cont.resumeWithException(e) }
         }
+
+    /** Drops icon-like noise; line boxes are rebuilt from the words that remain. */
+    private fun filter(text: Text): List<Line> {
+        val lines = ArrayList<Line>()
+        for (block in text.textBlocks) {
+            for (line in block.lines) {
+                val words = ArrayList<Pair<String, RectF>>()
+                for (e in line.elements) {
+                    val box = e.boundingBox ?: continue
+                    val t = e.text.trim()
+                    // Some ML Kit builds report 0 when confidence is unavailable; don't filter on that.
+                    val conf = e.confidence.takeIf { it > 0f }
+                    if (isNoise(t, conf)) continue
+                    words.add(t to RectF(box))
+                }
+                if (words.isEmpty()) continue
+                // Rebuild the line box from kept words, so a dropped icon doesn't inflate it.
+                val lineBox = RectF(words[0].second).apply { words.forEach { union(it.second) } }
+                lines.add(Line(lineBox, words))
+            }
+        }
+        return lines
+    }
+
+    private fun isNoise(t: String, conf: Float?): Boolean {
+        if (t.isEmpty()) return true
+        if (conf != null && conf < MIN_CONFIDENCE) return true
+        val letters = t.count { it.isLetterOrDigit() }
+        // Pure symbols ("<", "©", "|", "•") are almost always icons or dividers.
+        if (letters == 0 && t.length <= 2) return true
+        // Lone letters are how icons most often get misread ("O", "Q", "e", "@").
+        if (t.length == 1 && conf != null && conf < 0.7f) return true
+        return false
+    }
 
     /** Orders lines top-to-bottom, grouping vertically overlapping lines into
      *  one row read left-to-right, so selection follows the visual layout. */
