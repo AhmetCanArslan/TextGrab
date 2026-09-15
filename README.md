@@ -27,6 +27,13 @@ Share any image from any app (gallery, browser, messenger) to **TextGrab**
 and the text is selectable. Opening image files with TextGrab from a file
 manager works too, as does picking an image from the app's home screen.
 
+**Long-press home / navigation handle:**
+
+Set TextGrab under *Settings → Apps → Default apps → Digital assistant app*.
+Long-pressing home (or the gesture handle) then captures the screen, just
+like the tile. Needs instant capture enabled; without it, the latest
+screenshot is opened. On devices with Circle to Search, turn that off first.
+
 **Triggering via adb:**
 
 ```sh

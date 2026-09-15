@@ -56,6 +56,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Default digital assistant: long-press home / navigation handle -->
+        <activity
+            android:name=".AssistActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".CaptureAccessibilityService"
             android:exported="true"
