@@ -27,6 +27,18 @@ Share any image from any app (gallery, browser, messenger) to **TextGrab**
 and the text is selectable. Opening image files with TextGrab from a file
 manager works too, as does picking an image from the app's home screen.
 
+**Triggering via adb:**
+
+```sh
+# Capture the current screen (instant capture), or open the latest screenshot if it's off
+adb shell am broadcast -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
+# Always open the latest screenshot
+adb shell am broadcast -a com.arslan.textgrab.action.LATEST_SCREENSHOT -p com.arslan.textgrab
+```
+
+The receiver requires the `DUMP` permission, so only adb (not other apps)
+can send these.
+
 ## Screenshots
 
 | Tap a word | Long-press and drag | Full text view |

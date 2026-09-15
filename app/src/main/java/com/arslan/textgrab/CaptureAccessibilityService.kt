@@ -70,7 +70,11 @@ class CaptureAccessibilityService : AccessibilityService() {
      * viewer. Falls back to the latest-screenshot flow on failure.
      */
     @RequiresApi(31)
-    fun captureScreenAndOpen() {
+    fun captureScreenAndOpen(dismissShade: Boolean = true) {
+        if (!dismissShade) {
+            doCapture()
+            return
+        }
         performGlobalAction(GLOBAL_ACTION_DISMISS_NOTIFICATION_SHADE)
         handler.postDelayed({ doCapture() }, SHADE_DISMISS_DELAY_MS)
     }

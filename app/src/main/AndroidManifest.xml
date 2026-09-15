@@ -69,6 +69,17 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- adb trigger; DUMP is held by the adb shell, not by normal apps -->
+        <receiver
+            android:name=".CaptureReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.arslan.textgrab.action.CAPTURE" />
+                <action android:name="com.arslan.textgrab.action.LATEST_SCREENSHOT" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".ScreenshotTileService"
             android:exported="true"
