@@ -1,11 +1,39 @@
 # TextGrab
+Select and copy text from any image on Android while respecting your privacy. Works like iOS Live Text or the text selection on Pixel phones, but fully local and without Google Play services.
 
-[![Download APK](https://img.shields.io/github/v/release/notune/TextGrab?label=Download%20APK&color=2563EB)](https://github.com/notune/TextGrab/releases/latest)
-[![Get it on Obtainium](https://img.shields.io/badge/Get%20it%20on-Obtainium-1B2734)](https://apps.obtainium.page/redirect?r=obtainium://add/https%3A%2F%2Fgithub.com%2Fnotune%2FTextGrab)
+## What's different in this fork
 
-Select and copy text from any image on de-googled Android (GrapheneOS,
-CalyxOS, LineageOS, ...). Works like iOS Live Text or the text selection on
-Pixel phones, but fully local and without Google Play services.
+This is a fork of [notune/TextGrab](https://github.com/notune/TextGrab)
+with its own package name, `com.arslan.textgrab`, so it installs next to
+the original rather than updating it. 
+
+Changes:
+
+- **Assistant gesture:** long-press home / the navigation handle once
+  TextGrab is the default digital assistant. The home screen has a button
+  that opens that setting.
+- **adb trigger:** start a capture from a computer. The home screen shows the
+  command and copies it on tap. The receiver requires the `DUMP` permission,
+  so only adb (not other apps) can send these:
+
+  ```sh
+  # Capture the current screen (instant capture), or open the latest screenshot if it's off
+  adb shell am broadcast -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
+  # Always open the latest screenshot
+  adb shell am broadcast -a com.arslan.textgrab.action.LATEST_SCREENSHOT -p com.arslan.textgrab
+  ```
+- **Capture preview:** instant captures open slightly shrunk, below the
+  toolbar, with rounded corners over a blurred copy of the screen, so text
+  at the edges is easy to reach.
+- **More native text selection:** dragging follows lines instead of jumping
+  between words, handles keep their grab offset, and copied text no longer
+  contains stray empty lines.
+- **Better recognition:** icons and stray symbols are filtered out, lines
+  are ordered as they appear on screen, and Chinese, Japanese and Korean
+  models are bundled.
+
+The download and Obtainium badges and the signing certificate below still
+refer to the upstream project.
 
 ## How to use
 
@@ -33,18 +61,6 @@ Set TextGrab under *Settings → Apps → Default apps → Digital assistant app
 Long-pressing home (or the gesture handle) then captures the screen, just
 like the tile. Needs instant capture enabled; without it, the latest
 screenshot is opened. On devices with Circle to Search, turn that off first.
-
-**Triggering via adb:**
-
-```sh
-# Capture the current screen (instant capture), or open the latest screenshot if it's off
-adb shell am broadcast -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
-# Always open the latest screenshot
-adb shell am broadcast -a com.arslan.textgrab.action.LATEST_SCREENSHOT -p com.arslan.textgrab
-```
-
-The receiver requires the `DUMP` permission, so only adb (not other apps)
-can send these.
 
 ## Screenshots
 
