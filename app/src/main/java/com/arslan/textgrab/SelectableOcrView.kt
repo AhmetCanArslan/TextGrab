@@ -1,4 +1,4 @@
-package dev.noah.textgrab
+package com.arslan.textgrab
 
 import android.annotation.SuppressLint
 import android.content.Context

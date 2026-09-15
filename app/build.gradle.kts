@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "dev.noah.textgrab"
+    namespace = "com.arslan.textgrab"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.noah.textgrab"
+        applicationId = "com.arslan.textgrab"
         minSdk = 26
         targetSdk = 36
         versionCode = 2

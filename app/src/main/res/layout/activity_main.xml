@@ -84,7 +84,7 @@
         android:visibility="gone"
         tools:visibility="visible">
 
-        <dev.noah.textgrab.SelectableOcrView
+        <com.arslan.textgrab.SelectableOcrView
             android:id="@+id/ocrView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />

@@ -1,4 +1,4 @@
-package dev.noah.textgrab
+package com.arslan.textgrab
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent

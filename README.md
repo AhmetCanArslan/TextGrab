@@ -91,7 +91,7 @@ Release APKs are signed with this certificate (package + SHA-256, ready to
 paste into [AppVerifier](https://github.com/soupslurpr/AppVerifier)):
 
 ```
-dev.noah.textgrab
+com.arslan.textgrab
 AB:C4:BB:AE:C5:6F:D3:DB:AB:AC:C8:62:D0:B4:5D:29:3B:53:CC:40:BF:67:D7:25:3B:3E:1B:7D:2D:48:0C:31
 ```
 

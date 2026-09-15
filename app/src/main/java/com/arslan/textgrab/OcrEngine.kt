@@ -1,4 +1,4 @@
-package dev.noah.textgrab
+package com.arslan.textgrab
 
 import android.graphics.Bitmap
 import android.graphics.RectF
