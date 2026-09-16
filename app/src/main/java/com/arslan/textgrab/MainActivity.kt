@@ -194,6 +194,12 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
     }
 
+    override fun onDestroy() {
+        clearViewerContent()
+        CaptureHolder.take()
+        super.onDestroy()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -209,23 +215,36 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             Intent.ACTION_VIEW -> intent.data
             else -> null
         }
+        // Consume the request: a relaunch of the same intent (recents, config
+        // change, CLEAR_TOP) must not reopen what the user already dismissed.
+        val captureRequested = intent.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false)
+        val latestRequested = intent.getBooleanExtra(EXTRA_LATEST_SCREENSHOT, false)
+        intent.removeExtra(EXTRA_CAPTURED_SCREEN)
+        intent.removeExtra(EXTRA_LATEST_SCREENSHOT)
+        intent.action = Intent.ACTION_MAIN
+        intent.data = null
+
         when {
             uri != null -> {
                 launchedWithImage = true
                 openImage(uri)
             }
-            intent.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false) -> {
+            captureRequested -> {
                 val captured = CaptureHolder.take()
                 if (captured != null) {
                     launchedWithImage = true
                     openBitmap(captured)
                 } else showHome()
             }
-            intent.getBooleanExtra(EXTRA_LATEST_SCREENSHOT, false) -> {
+            latestRequested -> {
                 launchedWithImage = true
                 requestScreenshotOcr()
             }
-            else -> showHome()
+            else -> {
+                // A capture that never reached the viewer must not resurface later.
+                CaptureHolder.take()
+                showHome()
+            }
         }
     }
 
@@ -336,14 +355,11 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     // ---------------------------------------------------------------- UI state
 
     private fun showHome() {
-        resetTranslation()
+        clearViewerContent()
         binding.homeGroup.isVisible = true
         binding.viewerGroup.isVisible = false
         binding.progressGroup.isVisible = false
-        binding.selectionToolbar.isVisible = false
-        binding.ocrView.clear()
-        currentBitmap = null
-        currentResult = null
+        launchedWithImage = false
     }
 
     private fun showViewer(loading: Boolean) {
@@ -352,11 +368,25 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.progressGroup.isVisible = loading
         if (loading) {
             binding.selectionToolbar.isVisible = false
-            resetTranslation()
+            // The progress scrim is translucent, so anything left in the view
+            // would show through as the previous capture's preview.
+            clearViewerContent()
         }
     }
 
+    /** Drops the shown image and everything derived from it. */
+    private fun clearViewerContent() {
+        resetTranslation()
+        binding.selectionToolbar.isVisible = false
+        binding.ocrView.clear()
+        currentBitmap = null
+        currentResult = null
+    }
+
     private fun onBackFromViewer() {
+        // Clear first either way: on finish() the instance can outlive this
+        // frame and be reused for the next capture.
+        clearViewerContent()
         if (launchedWithImage) finish() else showHome()
     }
 
