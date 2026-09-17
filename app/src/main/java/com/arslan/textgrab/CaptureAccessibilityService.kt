@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
@@ -16,18 +17,25 @@ import androidx.annotation.RequiresApi
  * to MainActivity without going through disk.
  */
 object CaptureHolder {
+
+    /** A capture is handed over within a frame or two; anything older than
+     *  this belongs to a request the viewer never picked up. */
+    private const val MAX_AGE_MS = 30_000L
+
     private var bitmap: Bitmap? = null
+    private var putAt = 0L
 
     @Synchronized
     fun put(b: Bitmap) {
         bitmap = b
+        putAt = SystemClock.elapsedRealtime()
     }
 
     @Synchronized
     fun take(): Bitmap? {
         val b = bitmap
         bitmap = null
-        return b
+        return b?.takeIf { SystemClock.elapsedRealtime() - putAt <= MAX_AGE_MS }
     }
 }
 
@@ -120,7 +128,14 @@ class CaptureAccessibilityService : AccessibilityService() {
                 else MainActivity.EXTRA_LATEST_SCREENSHOT,
                 true
             )
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    // Without SINGLE_TOP, CLEAR_TOP tears down a running
+                    // MainActivity and recreates it, racing the capture it
+                    // was just handed. With it, onNewIntent delivers instead.
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
         })
     }
 }

@@ -195,8 +195,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     override fun onDestroy() {
+        // The pending capture is deliberately left alone: a launch that
+        // recreates this activity would otherwise drop the very bitmap it
+        // is being started for. CaptureHolder expires stale entries itself.
         clearViewerContent()
-        CaptureHolder.take()
         super.onDestroy()
     }
 

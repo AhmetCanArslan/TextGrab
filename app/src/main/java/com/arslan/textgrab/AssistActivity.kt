@@ -22,7 +22,13 @@ class AssistActivity : Activity() {
             startActivity(Intent(this, MainActivity::class.java).apply {
                 action = Intent.ACTION_MAIN
                 putExtra(MainActivity.EXTRA_LATEST_SCREENSHOT, true)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        // SINGLE_TOP: reuse a running MainActivity via onNewIntent
+                        // instead of letting CLEAR_TOP recreate it.
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
             })
         }
         finish()
