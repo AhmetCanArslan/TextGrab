@@ -1,6 +1,7 @@
 package com.arslan.textgrab
 
 import android.Manifest
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentUris
@@ -20,6 +21,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -43,6 +45,16 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     companion object {
         const val EXTRA_LATEST_SCREENSHOT = "com.arslan.textgrab.LATEST_SCREENSHOT"
         const val EXTRA_CAPTURED_SCREEN = "com.arslan.textgrab.CAPTURED_SCREEN"
+
+        /** Short enough to feel instant, long enough not to read as a flash. */
+        private const val SPLASH_FADE_MS = 150L
+
+        /** Toolbar entry, as fractions of the capture transition. */
+        private const val TOOLBAR_DELAY = 0.35f
+        private const val TOOLBAR_DURATION = 0.5f
+        private const val TOOLBAR_SLIDE = 0.4f
+        /** Used before the toolbar has been measured, on the very first frame. */
+        private const val TOOLBAR_SLIDE_FALLBACK_PX = 96
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -50,6 +62,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     private var currentResult: OcrEngine.Result? = null
     private var launchedWithImage = false
     private var translateJob: Job? = null
+    private var ocrJob: Job? = null
+
+    /** Holds the splash until there is a real frame behind it. */
+    private var contentReady = false
 
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -67,7 +83,27 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val capturing = intent?.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false) == true
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+        // Hold the splash until there is a real frame behind it; the window is
+        // then never seen empty, whichever screen the intent asked for.
+        splash.setKeepOnScreenCondition { !contentReady }
+        splash.setOnExitAnimationListener { provider ->
+            if (capturing) {
+                // The frame behind is already a copy of the screen the user was
+                // looking at, so the splash has nothing to hand over and simply
+                // gets out of the way before the capture transition starts.
+                provider.remove()
+            } else {
+                // Crossfade instead of the default slide-up: gentler than a cut,
+                // and it keeps the surface colour continuous throughout.
+                provider.view.animate()
+                    .alpha(0f)
+                    .setDuration(SPLASH_FADE_MS)
+                    .withEndAction { provider.remove() }
+            }
+        }
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -86,6 +122,9 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         // Capture previews sit below the toolbar instead of under it.
         binding.topBar.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
             binding.ocrView.topInset = v.bottom.toFloat()
+            // The toolbar's height depends on the status-bar inset, so the
+            // progress hairline follows its bottom edge rather than a constant.
+            binding.ocrProgress.translationY = v.bottom.toFloat()
         }
 
         binding.btnPick.setOnClickListener {
@@ -151,6 +190,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
 
         handleIntent(intent)
+
+        // Whatever handleIntent chose is laid out by now; let the splash go as
+        // soon as that state has actually been drawn.
+        binding.root.post { contentReady = true }
     }
 
     override fun onResume() {
@@ -261,11 +304,15 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     private fun openImage(uri: Uri) {
         setCapturePreview(false)
+        // Nothing to show until the file is decoded, so this is the one path
+        // that gets a full-screen wait.
         showViewer(loading = true)
-        lifecycleScope.launch {
+        startOcr {
             try {
                 val bitmap = ImageLoader.load(this@MainActivity, uri)
                 processBitmap(bitmap)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 android.util.Log.e("TextGrab", "Failed to open $uri", e)
                 showHome()
@@ -281,18 +328,108 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     private fun openBitmap(bitmap: Bitmap) {
         // Only instant captures arrive here; shrink them so edge text is reachable.
         setCapturePreview(true)
-        showViewer(loading = true)
-        lifecycleScope.launch { processBitmap(bitmap) }
+        // The system's own open animation would slide or fade a window over the
+        // screen that this very bitmap is a copy of. Drop it: the transition
+        // below replaces it with one that keeps those pixels in place.
+        clearOpenTransition()
+        // Synchronously, still inside onCreate on a cold start: the capture is
+        // in the very first frame, so there is nothing blank to hand over from.
+        showImage(bitmap)
+        binding.ocrView.playCaptureEntry()
+        playToolbarEntry()
+        startOcr { recognize(bitmap) }
+    }
+
+    /** Drops the system's open animation, so the capture's own one is all there is. */
+    private fun clearOpenTransition() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, 0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
+        }
+    }
+
+    /** Leaves with no close animation: the exit transition already landed us there. */
+    private fun finishWithoutTransition() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+            finish()
+        } else {
+            finish()
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
+        }
+    }
+
+    /**
+     * The toolbar arrives after the image has begun to settle, so the eye
+     * follows the capture first and the controls appear around it.
+     */
+    private fun playToolbarEntry() {
+        val bar = binding.topBar
+        bar.alpha = 0f
+        bar.translationY = -bar.height.coerceAtLeast(TOOLBAR_SLIDE_FALLBACK_PX) * TOOLBAR_SLIDE
+        bar.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setStartDelay((SelectableOcrView.CAPTURE_TRANSITION_MS * TOOLBAR_DELAY).toLong())
+            .setDuration((SelectableOcrView.CAPTURE_TRANSITION_MS * TOOLBAR_DURATION).toLong())
+            .setInterpolator(SelectableOcrView.EMPHASIZED_DECELERATE)
+        // The hairline belongs to the toolbar; it arrives with it rather than
+        // blinking on alone the moment recognition starts.
+        binding.ocrProgress.alpha = 0f
+        binding.ocrProgress.animate()
+            .alpha(1f)
+            .setStartDelay((SelectableOcrView.CAPTURE_TRANSITION_MS * TOOLBAR_DELAY).toLong())
+            .setDuration((SelectableOcrView.CAPTURE_TRANSITION_MS * TOOLBAR_DURATION).toLong())
+            .setInterpolator(SelectableOcrView.EMPHASIZED_DECELERATE)
+    }
+
+    /** Runs [block] as the single in-flight recognition, replacing any earlier one. */
+    private fun startOcr(block: suspend () -> Unit) {
+        ocrJob?.cancel()
+        ocrJob = lifecycleScope.launch { block() }
     }
 
     private suspend fun processBitmap(bitmap: Bitmap) {
-        val result = OcrEngine.recognize(bitmap)
+        showImage(bitmap)
+        recognize(bitmap)
+    }
+
+    /**
+     * Puts the image on screen before anything has been recognized. Panning and
+     * zooming work right away; words become tappable when [recognize] lands.
+     */
+    private fun showImage(bitmap: Bitmap) {
+        // A new image replaces the old one: drop what belonged to it, and undo
+        // any alpha an exit transition left behind on the chrome.
+        resetTranslation()
+        binding.selectionToolbar.isVisible = false
+        for (v in arrayOf(binding.topBar, binding.ocrProgress, binding.selectionToolbar)) {
+            v.animate().cancel()
+            v.alpha = 1f
+        }
+        // Not the hairline's: its translationY is where the toolbar ends, not animation state.
+        binding.topBar.translationY = 0f
+        currentResult = null
         currentBitmap = bitmap
-        currentResult = result
-        binding.ocrView.setContent(bitmap, result)
+        binding.ocrView.setImage(bitmap)
         showViewer(loading = false)
-        if (result.isEmpty) {
-            Snackbar.make(binding.root, R.string.no_text_found, Snackbar.LENGTH_LONG).show()
+    }
+
+    /** Recognition runs under the shown image, marked by the hairline progress bar. */
+    private suspend fun recognize(bitmap: Bitmap) {
+        binding.ocrProgress.show()
+        try {
+            val result = OcrEngine.recognize(bitmap)
+            currentResult = result
+            binding.ocrView.setContent(bitmap, result)
+            if (result.isEmpty) {
+                Snackbar.make(binding.root, R.string.no_text_found, Snackbar.LENGTH_LONG).show()
+            }
+        } finally {
+            binding.ocrProgress.hide()
         }
     }
 
@@ -378,14 +515,34 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     /** Drops the shown image and everything derived from it. */
     private fun clearViewerContent() {
+        ocrJob?.cancel()
+        ocrJob = null
         resetTranslation()
         binding.selectionToolbar.isVisible = false
+        binding.ocrProgress.hide()
         binding.ocrView.clear()
         currentBitmap = null
         currentResult = null
     }
 
     private fun onBackFromViewer() {
+        // A capture that played itself in plays itself back out: the image grows
+        // to fill the screen again, so the window closes on the same pixels the
+        // app is sitting on top of.
+        if (launchedWithImage && binding.ocrView.canPlayCaptureExit) {
+            val fadeOut = (SelectableOcrView.CAPTURE_TRANSITION_MS * TOOLBAR_DURATION).toLong()
+            for (v in arrayOf(binding.topBar, binding.ocrProgress, binding.selectionToolbar)) {
+                v.animate()
+                    .alpha(0f)
+                    .setStartDelay(0)
+                    .setDuration(fadeOut)
+                    .setInterpolator(SelectableOcrView.EMPHASIZED_ACCELERATE)
+            }
+            ocrJob?.cancel()
+            binding.ocrProgress.hide()
+            binding.ocrView.playCaptureExit { finishWithoutTransition() }
+            return
+        }
         // Clear first either way: on finish() the instance can outlive this
         // frame and be reused for the next capture.
         clearViewerContent()

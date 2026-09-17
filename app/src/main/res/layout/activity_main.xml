@@ -335,6 +335,18 @@
                 android:src="@drawable/ic_share" />
         </LinearLayout>
 
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/ocrProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorColor="?attr/colorPrimary"
+            app:trackColor="@android:color/transparent"
+            app:trackThickness="3dp"
+            tools:visibility="visible" />
+
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/selectionToolbar"
             android:layout_width="wrap_content"
@@ -377,20 +389,25 @@
         </com.google.android.material.card.MaterialCardView>
     </FrameLayout>
 
-    <!-- ============================= Progress ============================ -->
+    <!-- ===================== Opening an image from disk ================== -->
+    <!-- Only covers the decode, before there is anything to show. Opaque on
+         purpose: a translucent scrim over an empty viewer reads as a flash. -->
     <FrameLayout
         android:id="@+id/progressGroup"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#80000000"
+        android:background="?android:colorBackground"
         android:clickable="true"
         android:focusable="true"
-        android:visibility="gone">
+        android:visibility="gone"
+        tools:visibility="gone">
 
         <com.google.android.material.progressindicator.CircularProgressIndicator
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:indeterminate="true" />
+            android:indeterminate="true"
+            app:indicatorSize="36dp"
+            app:trackThickness="3dp" />
     </FrameLayout>
 </FrameLayout>

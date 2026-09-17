@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the Material3 light surface, so the launch window, the splash
+         and the home screen are one continuous colour instead of a black flash. -->
+    <color name="window_background">#FEF7FF</color>
+</resources>

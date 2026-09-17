@@ -16,7 +16,7 @@ class BlurredBackdrop(src: Bitmap) {
     private val blurred: Bitmap
     private val matrix = Matrix()
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
-    private val tint = Paint().apply { color = 0x59000000 }
+    private val tint = Paint().apply { color = 0x000000 or (TINT_ALPHA shl 24) }
 
     init {
         val w = max(1, src.width / DOWNSCALE)
@@ -27,8 +27,12 @@ class BlurredBackdrop(src: Bitmap) {
         blurred = Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
 
-    /** Center-crops the blurred image over a [width] x [height] area. */
-    fun draw(canvas: Canvas, width: Int, height: Int) {
+    /**
+     * Center-crops the blurred image over a [width] x [height] area.
+     * [alpha] fades the whole backdrop in over whatever is already there.
+     */
+    fun draw(canvas: Canvas, width: Int, height: Int, alpha: Float = 1f) {
+        if (alpha <= 0f) return
         val scale = max(width.toFloat() / blurred.width, height.toFloat() / blurred.height)
         matrix.reset()
         matrix.postScale(scale, scale)
@@ -36,12 +40,17 @@ class BlurredBackdrop(src: Bitmap) {
             (width - blurred.width * scale) / 2f,
             (height - blurred.height * scale) / 2f
         )
+        paint.alpha = (alpha * 255f).toInt().coerceIn(0, 255)
+        tint.alpha = (alpha * TINT_ALPHA).toInt().coerceIn(0, 255)
         canvas.drawBitmap(blurred, matrix, paint)
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), tint)
     }
 
     private companion object {
         const val DOWNSCALE = 24
+
+        /** Dim over the blur, so the inset preview keeps the eye. */
+        const val TINT_ALPHA = 0x59
 
         /** Separable box blur, horizontal then vertical, on packed ARGB pixels. */
         fun boxBlur(px: IntArray, w: Int, h: Int, radius: Int) {
