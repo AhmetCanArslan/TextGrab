@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API keys are the user's own credentials; they stay on the device. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="translate_engines.xml" />
+</full-backup-content>

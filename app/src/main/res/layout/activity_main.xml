@@ -188,6 +188,24 @@
                     </LinearLayout>
 
                     <LinearLayout
+                        android:id="@+id/rowEngine"
+                        style="@style/HomeRow">
+
+                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_settings" />
+
+                        <LinearLayout style="@style/HomeRowText">
+
+                            <TextView style="@style/HomeRowTitle" android:text="@string/engine_title" />
+
+                            <TextView
+                                android:id="@+id/textEngine"
+                                style="@style/HomeRowSummary" />
+                        </LinearLayout>
+
+                        <ImageView style="@style/HomeRowChevron" />
+                    </LinearLayout>
+
+                    <LinearLayout
                         android:id="@+id/rowLanguagePacks"
                         style="@style/HomeRow">
 

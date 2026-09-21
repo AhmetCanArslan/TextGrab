@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Recognition and translation run on-device. Network access is only
-         used to download translation models the first time a language is used. -->
+    <!-- Recognition and translation run on-device. The network is used to
+         download translation models the first time a language is used, and to
+         reach a cloud translation service if the user configures one. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -31,6 +32,9 @@
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.TextGrab"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true">
 

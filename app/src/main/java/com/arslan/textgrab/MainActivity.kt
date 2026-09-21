@@ -153,6 +153,9 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.rowLanguagePacks.setOnClickListener {
             LanguagePacksSheet(this) { refreshTranslationRows() }.show()
         }
+        binding.rowEngine.setOnClickListener {
+            TranslationEngineSheet(this) { refreshTranslationRows() }.show()
+        }
 
         binding.btnBack.setOnClickListener { onBackFromViewer() }
         binding.btnSelectAll.setOnClickListener { binding.ocrView.selectAll() }
@@ -210,6 +213,12 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     private fun refreshTranslationRows() {
         binding.textTargetLanguage.text = Translator.displayName(Translator.defaultTarget(this))
+        val engine = EngineSettings.selected(this)
+        binding.textEngine.text = getString(engine.title).let {
+            if (engine.isCloud) getString(R.string.engine_row_summary_cloud, it) else it
+        }
+        // Language packs only matter while the on-device engine is in use.
+        binding.rowLanguagePacks.isVisible = !engine.isCloud
         lifecycleScope.launch {
             val count = runCatching { Translator.downloadedLanguages().size }.getOrNull() ?: return@launch
             binding.textLanguagePacks.text = getString(R.string.language_packs_summary, count)
@@ -644,7 +653,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             binding.progressGroup.isVisible = true
             var downloadNote: Snackbar? = null
             try {
-                val outcome = Translator.translate(result, target) {
+                val outcome = Translator.translate(this@MainActivity, result, target) {
                     downloadNote = Snackbar.make(
                         binding.root, R.string.downloading_models, Snackbar.LENGTH_INDEFINITE
                     ).also { it.show() }
