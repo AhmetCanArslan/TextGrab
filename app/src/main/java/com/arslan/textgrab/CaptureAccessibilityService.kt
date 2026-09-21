@@ -102,19 +102,12 @@ class CaptureAccessibilityService : AccessibilityService() {
     }
 
     private fun openMain(captured: Boolean) {
-        startActivity(Intent(this, MainActivity::class.java).apply {
-            action = Intent.ACTION_MAIN
-            putExtra(
+        startActivity(
+            MainActivity.openIntent(
+                this,
                 if (captured) MainActivity.EXTRA_CAPTURED_SCREEN
-                else MainActivity.EXTRA_LATEST_SCREENSHOT,
-                true
+                else MainActivity.EXTRA_LATEST_SCREENSHOT
             )
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            )
-        })
+        )
     }
 }

@@ -30,15 +30,8 @@ class CaptureReceiver : BroadcastReceiver() {
     }
 
     private fun openLatestScreenshot(context: Context) {
-        context.startActivity(Intent(context, MainActivity::class.java).apply {
-            action = Intent.ACTION_MAIN
-            putExtra(MainActivity.EXTRA_LATEST_SCREENSHOT, true)
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            )
-        })
+        context.startActivity(
+            MainActivity.openIntent(context, MainActivity.EXTRA_LATEST_SCREENSHOT)
+        )
     }
 }

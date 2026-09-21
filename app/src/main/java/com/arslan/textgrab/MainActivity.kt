@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentUris
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -47,6 +48,18 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     companion object {
         const val EXTRA_LATEST_SCREENSHOT = "com.arslan.textgrab.LATEST_SCREENSHOT"
         const val EXTRA_CAPTURED_SCREEN = "com.arslan.textgrab.CAPTURED_SCREEN"
+
+        /** The one way the tile, the receiver and the accessibility service open the viewer. */
+        fun openIntent(context: Context, extra: String) =
+            Intent(context, MainActivity::class.java).apply {
+                action = Intent.ACTION_MAIN
+                putExtra(extra, true)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
+            }
 
         private const val SPLASH_FADE_MS = 150L
 
@@ -301,12 +314,8 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
     }
 
-    private fun setCapturePreview(enabled: Boolean) {
-        binding.ocrView.capturePreview = enabled
-    }
-
     private fun openImage(uri: Uri) {
-        setCapturePreview(false)
+        binding.ocrView.capturePreview = false
 
         showViewer(loading = true)
         startOcr {
@@ -328,9 +337,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun openBitmap(bitmap: Bitmap) {
-
-        setCapturePreview(true)
-
+        binding.ocrView.capturePreview = true
         clearOpenTransition()
 
         showImage(bitmap)
@@ -610,7 +617,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         val target = Translator.defaultTarget(this)
         translateJob?.cancel()
         translateJob = lifecycleScope.launch {
-            binding.progressGroup.isVisible = true
+            binding.ocrProgress.show()
             var downloadNote: Snackbar? = null
             try {
                 val outcome = Translator.translate(this@MainActivity, result, target) {
@@ -649,7 +656,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                 ).show()
             } finally {
                 downloadNote?.dismiss()
-                binding.progressGroup.isVisible = false
+                binding.ocrProgress.hide()
             }
         }
     }

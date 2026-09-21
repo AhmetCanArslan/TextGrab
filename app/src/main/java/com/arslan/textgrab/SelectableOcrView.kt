@@ -50,21 +50,36 @@ class SelectableOcrView @JvmOverloads constructor(
         set(value) {
             if (field == value) return
             field = value
-            refit()
+            // A toolbar relayout must not yank the image out of the zoom the user chose.
+            if (isUserZoomed) onTransformed() else refit()
         }
 
     var translations: List<String?>? = null
         set(value) {
+            if (field === value) return
             field = value
-            overlayColors = value?.let { computeOverlayColors() }
-            overlayStyles = value?.let { computeOverlayStyles(it) }
+            if (value != null) {
+                drawnTranslations = value
+                overlayColors = lineColors()
+                overlayStyles = computeOverlayStyles(value)
+            }
             if (selStart != -1) notifySelection()
+            fadeOverlayTo(if (value != null) 1f else 0f)
             invalidate()
         }
+
+    /** What is currently painted: outlives [translations] for the duration of the fade-out. */
+    private var drawnTranslations: List<String?>? = null
 
     private var overlayColors: List<Pair<Int, Int>>? = null
 
     private var overlayStyles: List<Pair<Float, Float>>? = null
+
+    /** Sampled from the image only, so it survives translate toggles. */
+    private var lineColorCache: List<Pair<Int, Int>>? = null
+
+    private var overlayAlpha = 0f
+    private var overlayAnimator: ValueAnimator? = null
 
     private var bitmap: Bitmap? = null
     private var result: OcrEngine.Result? = null
@@ -135,6 +150,8 @@ class SelectableOcrView @JvmOverloads constructor(
     private val clipPath = Path()
     private val tmpRect = RectF()
 
+    private val minPinchSpan get() = dp(48f)
+
     private val handleRadius get() = dp(7f)
     private val handleTouchRadius get() = dp(26f)
 
@@ -147,6 +164,7 @@ class SelectableOcrView @JvmOverloads constructor(
         bitmap = bmp
         result = null
         lines = null
+        lineColorCache = null
         backdrop = if (capturePreview) BlurredBackdrop(bmp) else null
         selStart = -1
         selEnd = -1
@@ -160,6 +178,9 @@ class SelectableOcrView @JvmOverloads constructor(
         bitmap = bmp
         result = ocr
         lines = LineIndex(ocr.words)
+        // Colours are sampled per line box, so a new result invalidates them even
+        // when the bitmap is the same instance.
+        lineColorCache = null
         if (!sameImage) backdrop = if (capturePreview) BlurredBackdrop(bmp) else null
         selStart = -1
         selEnd = -1
@@ -171,6 +192,11 @@ class SelectableOcrView @JvmOverloads constructor(
     fun clear() {
         captureAnimator?.cancel()
         captureAnimator = null
+        overlayAnimator?.cancel()
+        overlayAnimator = null
+        overlayAlpha = 0f
+        drawnTranslations = null
+        lineColorCache = null
         captureProgress = 1f
         entryPending = false
         bitmap = null
@@ -292,8 +318,9 @@ class SelectableOcrView @JvmOverloads constructor(
     val isAnimatingCapture get() = captureAnimator != null
 
     val canPlayCaptureExit
-        get() = bitmap != null && captureProgress > 0f && width > 0 && height > 0 &&
-            abs(currentScale - fitScale) < ZOOM_EPSILON
+        get() = bitmap != null && captureProgress > 0f && width > 0 && height > 0 && !isUserZoomed
+
+    private val isUserZoomed get() = abs(currentScale - fitScale) > ZOOM_EPSILON
 
     private fun animateCaptureTo(
         target: Float,
@@ -402,10 +429,10 @@ class SelectableOcrView @JvmOverloads constructor(
         }
 
         val r = result ?: return
-        val t = translations
+        val t = drawnTranslations
         val colors = overlayColors
         val styles = overlayStyles
-        if (t != null && colors != null && styles != null) {
+        if (t != null && colors != null && styles != null && overlayAlpha > 0f) {
             drawTranslations(canvas, r, t, colors, styles)
             if (selStart != -1) drawSelection(canvas, r)
         } else if (selStart == -1) drawHints(canvas, r) else drawSelection(canvas, r)
@@ -418,6 +445,7 @@ class SelectableOcrView @JvmOverloads constructor(
         colors: List<Pair<Int, Int>>,
         styles: List<Pair<Float, Float>>,
     ) {
+        val alpha = (overlayAlpha * 255f).toInt().coerceIn(0, 255)
         canvas.save()
         canvas.concat(imageMatrix)
         r.lineBoxes.forEachIndexed { i, box ->
@@ -427,10 +455,12 @@ class SelectableOcrView @JvmOverloads constructor(
             tmpRect.set(box)
             tmpRect.inset(-pad, -pad)
             overlayBgPaint.color = bg
+            overlayBgPaint.alpha = alpha
             canvas.drawRoundRect(tmpRect, pad, pad, overlayBgPaint)
             if (text.isEmpty()) return@forEachIndexed
 
             overlayTextPaint.color = fg
+            overlayTextPaint.alpha = alpha
             overlayTextPaint.textSize = styles[i].first
             overlayTextPaint.textScaleX = styles[i].second
             val fm = overlayTextPaint.fontMetrics
@@ -465,6 +495,36 @@ class SelectableOcrView @JvmOverloads constructor(
             size to if (w > box.width()) max(box.width() / w, MIN_TEXT_SCALE_X) else 1f
         }
     }
+
+    private fun fadeOverlayTo(target: Float) {
+        overlayAnimator?.cancel()
+        if (overlayAlpha == target) {
+            if (target == 0f) drawnTranslations = null
+            return
+        }
+        overlayAnimator = ValueAnimator.ofFloat(overlayAlpha, target).apply {
+            duration = (OVERLAY_FADE_MS * abs(target - overlayAlpha)).toLong().coerceAtLeast(1L)
+            interpolator = if (target > 0f) EMPHASIZED_DECELERATE else EMPHASIZED_ACCELERATE
+            addUpdateListener {
+                overlayAlpha = it.animatedValue as Float
+                invalidate()
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    overlayAnimator = null
+                    if (overlayAlpha == 0f) {
+                        drawnTranslations = null
+                        overlayStyles = null
+                        invalidate()
+                    }
+                }
+            })
+            start()
+        }
+    }
+
+    private fun lineColors(): List<Pair<Int, Int>> =
+        lineColorCache ?: computeOverlayColors().also { lineColorCache = it }
 
     private fun computeOverlayColors(): List<Pair<Int, Int>> {
         val src = bitmap ?: return emptyList()
@@ -537,10 +597,22 @@ class SelectableOcrView @JvmOverloads constructor(
 
     private val scaleDetector = ScaleGestureDetector(context,
         object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScaleBegin(detector: ScaleGestureDetector): Boolean =
+                dragMode == DragMode.NONE && detector.currentSpan >= minPinchSpan
+
             override fun onScale(detector: ScaleGestureDetector): Boolean {
                 if (dragMode != DragMode.NONE) return true
-                val target = (currentScale * detector.scaleFactor)
-                    .coerceIn(fitScale * 0.8f, fitScale * 12f)
+
+                // Fingers that sit almost on top of each other make the detector report
+                // wild factors; ignoring those keeps a pinch from snapping to max zoom.
+                if (detector.previousSpan < minPinchSpan || detector.currentSpan < minPinchSpan) {
+                    return true
+                }
+                val step = detector.scaleFactor
+                if (!step.isFinite() || step <= 0f) return true
+
+                val target = (currentScale * step.coerceIn(MIN_SCALE_STEP, MAX_SCALE_STEP))
+                    .coerceIn(fitScale * MIN_ZOOM, fitScale * MAX_ZOOM)
                 zoomTo(target, detector.focusX, detector.focusY)
                 return true
             }
@@ -574,7 +646,7 @@ class SelectableOcrView @JvmOverloads constructor(
             }
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                zoomTo(if (currentScale > fitScale * 1.4f) fitScale else fitScale * 2.5f, e.x, e.y)
+                zoomTo(if (isUserZoomed) fitScale else fitScale * DOUBLE_TAP_ZOOM, e.x, e.y)
                 return true
             }
 
@@ -594,6 +666,10 @@ class SelectableOcrView @JvmOverloads constructor(
 
     init {
         gestureDetector.setIsLongpressEnabled(true)
+        // Quick scale (double tap + drag) fights the double-tap-to-zoom below and can jump
+        // straight to max zoom on a sloppy tap.
+        scaleDetector.isQuickScaleEnabled = false
+        scaleDetector.isStylusScaleEnabled = false
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -728,9 +804,19 @@ class SelectableOcrView @JvmOverloads constructor(
 
         private const val ZOOM_EPSILON = 0.001f
 
+        private const val MIN_ZOOM = 0.8f
+        private const val MAX_ZOOM = 12f
+        private const val DOUBLE_TAP_ZOOM = 2.5f
+
+        /** Per-event clamp: a single pinch frame can never more than double or halve the zoom. */
+        private const val MIN_SCALE_STEP = 0.5f
+        private const val MAX_SCALE_STEP = 2f
+
         val EMPHASIZED_DECELERATE = PathInterpolator(0.05f, 0.7f, 0.1f, 1f)
 
         val EMPHASIZED_ACCELERATE = PathInterpolator(0.3f, 0f, 0.8f, 0.15f)
+
+        private const val OVERLAY_FADE_MS = 180f
 
         private const val MIN_TEXT_SHRINK = 0.6f
         private const val MIN_TEXT_SCALE_X = 0.7f

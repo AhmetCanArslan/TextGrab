@@ -1,7 +1,6 @@
 package com.arslan.textgrab
 
 import android.app.PendingIntent
-import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
 
@@ -16,16 +15,7 @@ class ScreenshotTileService : TileService() {
                 return
             }
         }
-        val intent = Intent(this, MainActivity::class.java).apply {
-            action = Intent.ACTION_MAIN
-            putExtra(MainActivity.EXTRA_LATEST_SCREENSHOT, true)
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-            )
-        }
+        val intent = MainActivity.openIntent(this, MainActivity.EXTRA_LATEST_SCREENSHOT)
         if (Build.VERSION.SDK_INT >= 34) {
             val pending = PendingIntent.getActivity(
                 this, 0, intent,
