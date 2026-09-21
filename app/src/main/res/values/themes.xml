@@ -1,89 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TextGrab" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#3B82F6</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
 
-        <item name="android:windowBackground">@color/window_background</item>
-    </style>
+    <style name="Theme.TextGrab" parent="Theme.Material3Expressive.DynamicColors.DayNight.NoActionBar" />
 
     <style name="Theme.TextGrab.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/window_background</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
         <item name="postSplashScreenTheme">@style/Theme.TextGrab</item>
     </style>
 
-    <style name="HomeActionCard" parent="Widget.Material3.CardView.Filled">
-        <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_weight">1</item>
-        <item name="android:clickable">true</item>
-        <item name="android:focusable">true</item>
-        <item name="cardCornerRadius">28dp</item>
-    </style>
-
-    <style name="HomeActionContent">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:minHeight">128dp</item>
-        <item name="android:orientation">vertical</item>
-        <item name="android:padding">20dp</item>
-    </style>
-
-    <style name="HomeActionIcon">
-        <item name="android:layout_width">32dp</item>
-        <item name="android:layout_height">32dp</item>
-        <item name="android:importantForAccessibility">no</item>
-    </style>
-
-    <style name="HomeActionLabel">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">0dp</item>
-        <item name="android:layout_weight">1</item>
-        <item name="android:layout_marginTop">24dp</item>
-        <item name="android:gravity">bottom</item>
-        <item name="android:textAppearance">?attr/textAppearanceTitleMedium</item>
-    </style>
-
-    <style name="HomeSectionHeader">
+    <style name="HomeSectionHeader" parent="Widget.Material3.TextView.ListItem.Overline">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">24dp</item>
         <item name="android:layout_marginBottom">8dp</item>
-        <item name="android:paddingHorizontal">8dp</item>
-        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
-        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:paddingHorizontal">16dp</item>
     </style>
 
-    <style name="HomeCard" parent="Widget.Material3.CardView.Filled">
+    <style name="ListItemCard" parent="Widget.Material3.ListItemCardView.Segmented">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="cardCornerRadius">24dp</item>
+        <item name="android:layout_marginBottom">2dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
         <item name="cardBackgroundColor">?attr/colorSurfaceContainerHigh</item>
     </style>
 
-    <style name="HomeRow">
+    <style name="ListItemRow">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:minHeight">64dp</item>
+        <item name="android:minHeight">56dp</item>
         <item name="android:orientation">horizontal</item>
         <item name="android:gravity">center_vertical</item>
-        <item name="android:paddingHorizontal">16dp</item>
-        <item name="android:paddingVertical">12dp</item>
-        <item name="android:background">?attr/selectableItemBackground</item>
-        <item name="android:clickable">true</item>
-        <item name="android:focusable">true</item>
     </style>
 
-    <style name="HomeRowIcon">
+    <style name="ListItemLeadingIcon" parent="Widget.Material3.ImageView.ListItem.LeadingIcon">
         <item name="android:layout_width">24dp</item>
         <item name="android:layout_height">24dp</item>
-        <item name="android:importantForAccessibility">no</item>
-        <item name="tint">?attr/colorOnSurfaceVariant</item>
     </style>
 
-    <style name="HomeRowText">
+    <style name="ListItemTrailingIcon" parent="Widget.Material3.ImageView.ListItem.TrailingIcon">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_marginStart">8dp</item>
+    </style>
+
+    <style name="ListItemTextGroup">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
@@ -91,49 +54,13 @@
         <item name="android:orientation">vertical</item>
     </style>
 
-    <style name="HomeRowTitle">
+    <style name="ListItemLabel" parent="Widget.Material3.TextView.ListItem.LabelText">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textAppearance">?attr/textAppearanceBodyLarge</item>
     </style>
 
-    <style name="HomeRowSummary">
-        <item name="android:layout_width">wrap_content</item>
+    <style name="ListItemSupportingText" parent="Widget.Material3.TextView.ListItem.SupportingText">
+        <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textAppearance">?attr/textAppearanceBodyMedium</item>
-        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
-    </style>
-
-    <style name="HomeRowChevron">
-        <item name="android:layout_width">20dp</item>
-        <item name="android:layout_height">20dp</item>
-        <item name="android:layout_marginStart">8dp</item>
-        <item name="android:importantForAccessibility">no</item>
-        <item name="android:src">@drawable/ic_chevron_right</item>
-        <item name="tint">?attr/colorOnSurfaceVariant</item>
-    </style>
-
-    <style name="ViewerIconButton">
-        <item name="android:layout_width">48dp</item>
-        <item name="android:layout_height">48dp</item>
-        <item name="android:background">?attr/actionBarItemBackground</item>
-        <item name="android:tint">#FFFFFF</item>
-        <item name="android:scaleType">centerInside</item>
-    </style>
-
-    <style name="ToolbarTextButton" parent="Widget.Material3.Button.TextButton">
-        <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:minWidth">0dp</item>
-        <item name="android:paddingHorizontal">14dp</item>
-        <item name="android:textSize">15sp</item>
-    </style>
-
-    <style name="ToolbarIconButton">
-        <item name="android:layout_width">44dp</item>
-        <item name="android:layout_height">44dp</item>
-        <item name="android:background">?attr/actionBarItemBackground</item>
-        <item name="android:tint">?attr/colorOnSurface</item>
-        <item name="android:scaleType">centerInside</item>
     </style>
 </resources>

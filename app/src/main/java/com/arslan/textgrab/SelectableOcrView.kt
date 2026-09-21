@@ -20,6 +20,8 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.animation.PathInterpolator
+import androidx.core.graphics.ColorUtils
+import com.google.android.material.color.MaterialColors
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -104,22 +106,31 @@ class SelectableOcrView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = dp(1.2f)
     }
+    private val accentColor = MaterialColors.getColor(
+        this, androidx.appcompat.R.attr.colorPrimary, Color.WHITE
+    )
     private val selectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x663B82F6
+        color = ColorUtils.setAlphaComponent(accentColor, SELECTION_ALPHA)
         style = Paint.Style.FILL
     }
     private val handlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF3B82F6.toInt()
+        color = accentColor
         style = Paint.Style.FILL
     }
     private val handleStemPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF3B82F6.toInt()
+        color = accentColor
         style = Paint.Style.STROKE
         strokeWidth = dp(2f)
     }
     private val overlayBgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayTextPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
-    private val backgroundPaint = Paint().apply { color = 0xFF101014.toInt() }
+    private val backgroundPaint = Paint().apply {
+        color = MaterialColors.getColor(
+            this@SelectableOcrView,
+            com.google.android.material.R.attr.colorSurfaceContainerLowest,
+            Color.BLACK
+        )
+    }
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val clipPath = Path()
     private val tmpRect = RectF()
@@ -710,6 +721,8 @@ class SelectableOcrView @JvmOverloads constructor(
     }
 
     companion object {
+        private const val SELECTION_ALPHA = 0x66
+
 
         const val CAPTURE_TRANSITION_MS = 420f
 

@@ -35,14 +35,13 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/sheetShare"
-            style="@style/Widget.Material3.Button.TextButton"
+            style="?attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/share" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/sheetCopy"
-            style="@style/Widget.Material3.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

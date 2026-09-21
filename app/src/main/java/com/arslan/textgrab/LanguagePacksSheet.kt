@@ -2,7 +2,6 @@ package com.arslan.textgrab
 
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -13,7 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.progressindicator.CircularProgressIndicator
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.loadingindicator.LoadingIndicator
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -60,8 +60,8 @@ class LanguagePacksSheet(
         val row = activity.layoutInflater.inflate(R.layout.item_language, list, false) as ViewGroup
         val name = Translator.displayName(code)
         val status = row.findViewById<TextView>(R.id.langStatus)
-        val action = row.findViewById<ImageButton>(R.id.langAction)
-        val progress = row.findViewById<CircularProgressIndicator>(R.id.langProgress)
+        val action = row.findViewById<MaterialButton>(R.id.langAction)
+        val progress = row.findViewById<LoadingIndicator>(R.id.langProgress)
 
         row.findViewById<ImageView>(R.id.langCheck).isInvisible = !isTarget
         row.findViewById<TextView>(R.id.langName).text = name
@@ -77,13 +77,13 @@ class LanguagePacksSheet(
             }
             code in downloaded -> {
                 status.setText(R.string.language_downloaded)
-                action.setImageResource(R.drawable.ic_delete)
+                action.setIconResource(R.drawable.ic_delete)
                 action.contentDescription = activity.getString(R.string.language_delete)
                 action.setOnClickListener { confirmDelete(code, name) }
             }
             else -> {
                 status.setText(R.string.language_not_downloaded)
-                action.setImageResource(R.drawable.ic_download)
+                action.setIconResource(R.drawable.ic_download)
                 action.contentDescription = activity.getString(R.string.language_download)
                 action.setOnClickListener { download(code) }
             }

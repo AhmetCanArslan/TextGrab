@@ -12,49 +12,35 @@
 
     <ImageView
         android:id="@+id/engineCheck"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:importantForAccessibility="no"
+        style="@style/ListItemLeadingIcon"
         android:src="@drawable/ic_check"
         app:tint="?attr/colorPrimary" />
 
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
+        style="@style/ListItemTextGroup"
         android:paddingVertical="12dp">
 
         <TextView
             android:id="@+id/engineName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
+            style="@style/ListItemLabel" />
 
         <TextView
             android:id="@+id/engineSummary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            style="@style/ListItemSupportingText" />
 
         <TextView
             android:id="@+id/engineStatus"
+            style="@style/ListItemSupportingText"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
             android:textColor="?attr/colorPrimary" />
     </LinearLayout>
 
-    <ImageButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/engineConfigure"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:background="?attr/actionBarItemBackground"
+        style="?attr/materialIconButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:contentDescription="@string/engine_configure"
-        android:scaleType="centerInside"
-        android:src="@drawable/ic_settings"
-        app:tint="?attr/colorOnSurfaceVariant" />
+        app:icon="@drawable/ic_settings" />
 </LinearLayout>

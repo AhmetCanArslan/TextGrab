@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="?android:colorBackground">
+    android:layout_height="match_parent">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/homeGroup"
@@ -26,7 +25,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="4dp"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="8dp">
 
                 <ImageView
@@ -47,7 +46,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/app_name"
-                        android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+                        android:textAppearance="?attr/textAppearanceHeadlineSmallEmphasized" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -58,217 +57,253 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout
+            <com.google.android.material.button.MaterialButtonGroup
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
-                <com.google.android.material.card.MaterialCardView
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPick"
-                    style="@style/HomeActionCard"
-                    android:layout_marginEnd="6dp"
-                    app:cardBackgroundColor="?attr/colorPrimary">
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/pick_image"
+                    app:icon="@drawable/ic_image"
+                    app:iconGravity="textStart"
+                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
 
-                    <LinearLayout style="@style/HomeActionContent">
-
-                        <ImageView
-                            style="@style/HomeActionIcon"
-                            android:src="@drawable/ic_image"
-                            app:tint="?attr/colorOnPrimary" />
-
-                        <TextView
-                            style="@style/HomeActionLabel"
-                            android:text="@string/pick_image"
-                            android:textColor="?attr/colorOnPrimary" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnScreenshot"
-                    style="@style/HomeActionCard"
-                    android:layout_marginStart="6dp"
-                    app:cardBackgroundColor="?attr/colorSecondaryContainer">
-
-                    <LinearLayout style="@style/HomeActionContent">
-
-                        <ImageView
-                            style="@style/HomeActionIcon"
-                            android:src="@drawable/ic_tile"
-                            app:tint="?attr/colorOnSecondaryContainer" />
-
-                        <TextView
-                            style="@style/HomeActionLabel"
-                            android:text="@string/latest_screenshot"
-                            android:textColor="?attr/colorOnSecondaryContainer" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
+                    style="?attr/materialButtonTonalStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/latest_screenshot"
+                    app:icon="@drawable/ic_tile"
+                    app:iconGravity="textStart"
+                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
+            </com.google.android.material.button.MaterialButtonGroup>
 
             <TextView
                 android:id="@+id/setupHeader"
                 style="@style/HomeSectionHeader"
                 android:text="@string/section_setup" />
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:id="@+id/setupCard"
-                style="@style/HomeCard">
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/btnEnableCapture"
+                    style="@style/ListItemCard">
 
-                    <LinearLayout
-                        android:id="@+id/btnEnableCapture"
-                        style="@style/HomeRow">
+                    <LinearLayout style="@style/ListItemRow">
 
-                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_bolt" />
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_bolt" />
 
-                        <LinearLayout style="@style/HomeRowText">
+                        <LinearLayout style="@style/ListItemTextGroup">
 
-                            <TextView style="@style/HomeRowTitle" android:text="@string/enable_instant_capture" />
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/enable_instant_capture" />
 
-                            <TextView style="@style/HomeRowSummary" android:text="@string/enable_instant_capture_summary" />
+                            <TextView
+                                style="@style/ListItemSupportingText"
+                                android:text="@string/enable_instant_capture_summary" />
                         </LinearLayout>
 
-                        <ImageView style="@style/HomeRowChevron" />
+                        <ImageView
+                            style="@style/ListItemTrailingIcon"
+                            android:src="@drawable/ic_chevron_right" />
                     </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
 
-                    <LinearLayout
-                        android:id="@+id/btnSetAssistant"
-                        style="@style/HomeRow">
+                <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/btnSetAssistant"
+                    style="@style/ListItemCard">
 
-                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_mic" />
+                    <LinearLayout style="@style/ListItemRow">
 
-                        <LinearLayout style="@style/HomeRowText">
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_mic" />
 
-                            <TextView style="@style/HomeRowTitle" android:text="@string/set_as_assistant" />
+                        <LinearLayout style="@style/ListItemTextGroup">
 
-                            <TextView style="@style/HomeRowSummary" android:text="@string/set_as_assistant_summary" />
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/set_as_assistant" />
+
+                            <TextView
+                                style="@style/ListItemSupportingText"
+                                android:text="@string/set_as_assistant_summary" />
                         </LinearLayout>
 
-                        <ImageView style="@style/HomeRowChevron" />
+                        <ImageView
+                            style="@style/ListItemTrailingIcon"
+                            android:src="@drawable/ic_chevron_right" />
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                </com.google.android.material.listitem.ListItemCardView>
+            </LinearLayout>
 
             <TextView
                 style="@style/HomeSectionHeader"
                 android:text="@string/section_translation" />
 
-            <com.google.android.material.card.MaterialCardView style="@style/HomeCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/rowTargetLanguage"
+                    style="@style/ListItemCard"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.First">
 
-                    <LinearLayout
-                        android:id="@+id/rowTargetLanguage"
-                        style="@style/HomeRow">
+                    <LinearLayout style="@style/ListItemRow">
 
-                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_translate" />
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_translate" />
 
-                        <LinearLayout style="@style/HomeRowText">
+                        <LinearLayout style="@style/ListItemTextGroup">
 
-                            <TextView style="@style/HomeRowTitle" android:text="@string/translate_to" />
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/translate_to" />
 
                             <TextView
                                 android:id="@+id/textTargetLanguage"
-                                style="@style/HomeRowSummary" />
+                                style="@style/ListItemSupportingText" />
                         </LinearLayout>
 
-                        <ImageView style="@style/HomeRowChevron" />
+                        <ImageView
+                            style="@style/ListItemTrailingIcon"
+                            android:src="@drawable/ic_chevron_right" />
                     </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
 
-                    <LinearLayout
-                        android:id="@+id/rowEngine"
-                        style="@style/HomeRow">
+                <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/rowEngine"
+                    style="@style/ListItemCard"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.Middle">
 
-                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_settings" />
+                    <LinearLayout style="@style/ListItemRow">
 
-                        <LinearLayout style="@style/HomeRowText">
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_settings" />
 
-                            <TextView style="@style/HomeRowTitle" android:text="@string/engine_title" />
+                        <LinearLayout style="@style/ListItemTextGroup">
+
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/engine_title" />
 
                             <TextView
                                 android:id="@+id/textEngine"
-                                style="@style/HomeRowSummary" />
+                                style="@style/ListItemSupportingText" />
                         </LinearLayout>
 
-                        <ImageView style="@style/HomeRowChevron" />
+                        <ImageView
+                            style="@style/ListItemTrailingIcon"
+                            android:src="@drawable/ic_chevron_right" />
                     </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
 
-                    <LinearLayout
-                        android:id="@+id/rowLanguagePacks"
-                        style="@style/HomeRow">
+                <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/rowLanguagePacks"
+                    style="@style/ListItemCard"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.Last">
 
-                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_download" />
+                    <LinearLayout style="@style/ListItemRow">
 
-                        <LinearLayout style="@style/HomeRowText">
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_download" />
 
-                            <TextView style="@style/HomeRowTitle" android:text="@string/language_packs" />
+                        <LinearLayout style="@style/ListItemTextGroup">
+
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/language_packs" />
 
                             <TextView
                                 android:id="@+id/textLanguagePacks"
-                                style="@style/HomeRowSummary" />
+                                style="@style/ListItemSupportingText" />
                         </LinearLayout>
 
-                        <ImageView style="@style/HomeRowChevron" />
+                        <ImageView
+                            style="@style/ListItemTrailingIcon"
+                            android:src="@drawable/ic_chevron_right" />
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                </com.google.android.material.listitem.ListItemCardView>
+            </LinearLayout>
 
             <TextView
                 style="@style/HomeSectionHeader"
                 android:text="@string/section_more" />
 
-            <com.google.android.material.card.MaterialCardView style="@style/HomeCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                <com.google.android.material.listitem.ListItemCardView
+                    style="@style/ListItemCard"
+                    android:clickable="false"
+                    android:focusable="false"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.First">
 
-                    <LinearLayout
-                        style="@style/HomeRow"
-                        android:background="@null"
-                        android:clickable="false">
+                    <LinearLayout style="@style/ListItemRow">
 
-                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_info" />
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_info" />
 
-                        <LinearLayout style="@style/HomeRowText">
+                        <LinearLayout style="@style/ListItemTextGroup">
 
-                            <TextView style="@style/HomeRowSummary" android:text="@string/home_hint" />
+                            <TextView
+                                style="@style/ListItemSupportingText"
+                                android:text="@string/home_hint" />
                         </LinearLayout>
                     </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
 
-                    <LinearLayout
-                        android:id="@+id/adbRow"
-                        style="@style/HomeRow"
-                        android:contentDescription="@string/adb_copy">
+                <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/adbRow"
+                    style="@style/ListItemCard"
+                    android:contentDescription="@string/adb_copy"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.Last">
 
-                        <ImageView style="@style/HomeRowIcon" android:src="@drawable/ic_code" />
+                    <LinearLayout style="@style/ListItemRow">
 
-                        <LinearLayout style="@style/HomeRowText">
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_code" />
 
-                            <TextView style="@style/HomeRowTitle" android:text="@string/adb_label" />
+                        <LinearLayout style="@style/ListItemTextGroup">
+
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/adb_label" />
 
                             <TextView
                                 android:id="@+id/adbCommand"
-                                style="@style/HomeRowSummary"
+                                style="@style/ListItemSupportingText"
                                 android:layout_marginTop="4dp"
-                                android:fontFamily="monospace"
-                                android:textSize="11sp" />
+                                android:fontFamily="monospace" />
                         </LinearLayout>
 
                         <ImageView
-                            style="@style/HomeRowChevron"
+                            style="@style/ListItemTrailingIcon"
                             android:src="@drawable/ic_copy" />
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                </com.google.android.material.listitem.ListItemCardView>
+            </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
@@ -294,57 +329,73 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-        <LinearLayout
+        <com.google.android.material.floatingtoolbar.FloatingToolbarLayout
             android:id="@+id/topBar"
-            android:layout_width="match_parent"
+            style="@style/Widget.Material3.FloatingToolbar"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
-            android:background="@drawable/top_scrim">
+            android:layout_gravity="top|center_horizontal"
+            android:layout_margin="8dp"
+            app:marginLeftSystemWindowInsets="true"
+            app:marginRightSystemWindowInsets="true"
+            app:marginTopSystemWindowInsets="true">
 
-            <ImageButton
-                android:id="@+id/btnBack"
-                style="@style/ViewerIconButton"
-                android:contentDescription="@string/back"
-                android:src="@drawable/ic_back" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBack"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/back"
+                    app:icon="@drawable/ic_back" />
 
-            <ImageButton
-                android:id="@+id/btnSelectAll"
-                style="@style/ViewerIconButton"
-                android:contentDescription="@string/select_all"
-                android:src="@drawable/ic_select_all" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSelectAll"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/select_all"
+                    app:icon="@drawable/ic_select_all" />
 
-            <ImageButton
-                android:id="@+id/btnTextMode"
-                style="@style/ViewerIconButton"
-                android:contentDescription="@string/view_as_text"
-                android:src="@drawable/ic_text" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTextMode"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/view_as_text"
+                    app:icon="@drawable/ic_text" />
 
-            <ImageButton
-                android:id="@+id/btnTranslateAll"
-                style="@style/ViewerIconButton"
-                android:contentDescription="@string/translate"
-                android:src="@drawable/ic_translate" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTranslateAll"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:contentDescription="@string/translate"
+                    app:icon="@drawable/ic_translate" />
 
-            <ImageButton
-                android:id="@+id/btnCopyAll"
-                style="@style/ViewerIconButton"
-                android:contentDescription="@string/copy_all"
-                android:src="@drawable/ic_copy" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCopyAll"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/copy_all"
+                    app:icon="@drawable/ic_copy" />
 
-            <ImageButton
-                android:id="@+id/btnShareAll"
-                style="@style/ViewerIconButton"
-                android:contentDescription="@string/share"
-                android:src="@drawable/ic_share" />
-        </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShareAll"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/share"
+                    app:icon="@drawable/ic_share" />
+            </LinearLayout>
+        </com.google.android.material.floatingtoolbar.FloatingToolbarLayout>
 
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/ocrProgress"
@@ -353,69 +404,71 @@
             android:layout_gravity="top"
             android:indeterminate="true"
             android:visibility="gone"
-            app:indicatorColor="?attr/colorPrimary"
-            app:trackColor="@android:color/transparent"
-            app:trackThickness="3dp"
+            app:waveAmplitude="2dp"
+            app:wavelength="24dp"
             tools:visibility="visible" />
 
-        <com.google.android.material.card.MaterialCardView
+        <com.google.android.material.floatingtoolbar.FloatingToolbarLayout
             android:id="@+id/selectionToolbar"
+            style="@style/Widget.Material3.FloatingToolbar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|start"
             android:visibility="gone"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="6dp"
             tools:visibility="visible">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="6dp">
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbarCopy"
-                    style="@style/ToolbarTextButton"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="@string/copy" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbarSelectAll"
-                    style="@style/ToolbarTextButton"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="@string/select_all_short" />
 
-                <ImageButton
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbarShare"
-                    style="@style/ToolbarIconButton"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:contentDescription="@string/share"
-                    android:src="@drawable/ic_share" />
+                    app:icon="@drawable/ic_share" />
 
-                <ImageButton
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbarSearch"
-                    style="@style/ToolbarIconButton"
+                    style="?attr/materialIconButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:contentDescription="@string/search_web"
-                    android:src="@drawable/ic_search" />
+                    app:icon="@drawable/ic_search" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </com.google.android.material.floatingtoolbar.FloatingToolbarLayout>
     </FrameLayout>
 
     <FrameLayout
         android:id="@+id/progressGroup"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?android:colorBackground"
+        android:background="?attr/colorSurface"
         android:clickable="true"
         android:focusable="true"
         android:visibility="gone"
         tools:visibility="gone">
 
-        <com.google.android.material.progressindicator.CircularProgressIndicator
+        <com.google.android.material.loadingindicator.LoadingIndicator
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:indeterminate="true"
-            app:indicatorSize="36dp"
-            app:trackThickness="3dp" />
+            android:layout_gravity="center" />
     </FrameLayout>
 </FrameLayout>

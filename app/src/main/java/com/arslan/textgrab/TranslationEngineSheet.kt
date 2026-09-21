@@ -2,7 +2,6 @@ package com.arslan.textgrab
 
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -63,7 +62,7 @@ class TranslationEngineSheet(
             }
         )
 
-        val configure = row.findViewById<ImageButton>(R.id.engineConfigure)
+        val configure = row.findViewById<com.google.android.material.button.MaterialButton>(R.id.engineConfigure)
         configure.isVisible = info.isCloud
         configure.setOnClickListener { configure(info) }
 

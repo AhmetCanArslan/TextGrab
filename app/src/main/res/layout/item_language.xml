@@ -12,54 +12,39 @@
 
     <ImageView
         android:id="@+id/langCheck"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:importantForAccessibility="no"
+        style="@style/ListItemLeadingIcon"
         android:src="@drawable/ic_check"
         app:tint="?attr/colorPrimary" />
 
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
+        style="@style/ListItemTextGroup"
         android:paddingVertical="10dp">
 
         <TextView
             android:id="@+id/langName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
+            style="@style/ListItemLabel" />
 
         <TextView
             android:id="@+id/langStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            style="@style/ListItemSupportingText" />
     </LinearLayout>
 
     <FrameLayout
-        android:layout_width="48dp"
-        android:layout_height="48dp">
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
 
-        <ImageButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/langAction"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/actionBarItemBackground"
-            android:scaleType="centerInside"
-            app:tint="?attr/colorOnSurfaceVariant" />
+            style="?attr/materialIconButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
 
-        <com.google.android.material.progressindicator.CircularProgressIndicator
+        <com.google.android.material.loadingindicator.LoadingIndicator
             android:id="@+id/langProgress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:indeterminate="true"
             android:visibility="gone"
-            app:indicatorSize="24dp"
-            app:trackThickness="3dp" />
+            app:indicatorSize="24dp" />
     </FrameLayout>
 </LinearLayout>

@@ -7,8 +7,6 @@ import android.content.ClipboardManager
 import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.RectF
 import android.net.Uri
@@ -18,6 +16,7 @@ import android.provider.MediaStore
 import android.view.View
 import android.widget.TextView
 import androidx.activity.addCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -25,11 +24,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.mlkit.nl.translate.TranslateLanguage
@@ -98,6 +98,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                     .withEndAction { provider.remove() }
             }
         }
+        enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -106,7 +107,6 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
             val base = (24 * resources.displayMetrics.density).toInt()
-            binding.topBar.updatePadding(top = bars.top, left = bars.left, right = bars.right)
             binding.homeGroup.updatePadding(top = base + bars.top, bottom = base + bars.bottom)
             insets
         }
@@ -198,7 +198,22 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         val needsSetup = binding.btnEnableCapture.isVisible || binding.btnSetAssistant.isVisible
         binding.setupHeader.isVisible = needsSetup
         binding.setupCard.isVisible = needsSetup
+        applySegmentShapes(binding.btnEnableCapture, binding.btnSetAssistant)
         refreshTranslationRows()
+    }
+
+    /** Gives a segmented list its M3 first/middle/last corner shapes for the rows in view. */
+    private fun applySegmentShapes(vararg rows: MaterialCardView) {
+        val shown = rows.filter { it.isVisible }
+        shown.forEachIndexed { index, row ->
+            val shape = when {
+                shown.size == 1 -> com.google.android.material.R.style.ShapeAppearance_Material3_ListItem_Single
+                index == 0 -> com.google.android.material.R.style.ShapeAppearance_Material3_ListItem_First
+                index == shown.lastIndex -> com.google.android.material.R.style.ShapeAppearance_Material3_ListItem_Last
+                else -> com.google.android.material.R.style.ShapeAppearance_Material3_ListItem_Middle
+            }
+            row.shapeAppearanceModel = ShapeAppearanceModel.builder(this, shape, 0).build()
+        }
     }
 
     private fun refreshTranslationRows() {
@@ -288,8 +303,6 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     private fun setCapturePreview(enabled: Boolean) {
         binding.ocrView.capturePreview = enabled
-        if (enabled) binding.topBar.background = null
-        else binding.topBar.setBackgroundResource(R.drawable.top_scrim)
     }
 
     private fun openImage(uri: Uri) {
@@ -468,28 +481,16 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.viewerGroup.isVisible = false
         binding.progressGroup.isVisible = false
         launchedWithImage = false
-        updateSystemBarAppearance()
     }
 
     private fun showViewer(loading: Boolean) {
         binding.homeGroup.isVisible = false
         binding.viewerGroup.isVisible = true
         binding.progressGroup.isVisible = loading
-        updateSystemBarAppearance()
         if (loading) {
             binding.selectionToolbar.isVisible = false
 
             clearViewerContent()
-        }
-    }
-
-    private fun updateSystemBarAppearance() {
-        val night = resources.configuration.uiMode and
-            Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        val light = !binding.viewerGroup.isVisible && !night
-        WindowInsetsControllerCompat(window, binding.root).apply {
-            isAppearanceLightStatusBars = light
-            isAppearanceLightNavigationBars = light
         }
     }
 
@@ -661,9 +662,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun setTranslateActive(active: Boolean) {
-        binding.btnTranslateAll.imageTintList = ColorStateList.valueOf(
-            if (active) 0xFF3B82F6.toInt() else android.graphics.Color.WHITE
-        )
+        binding.btnTranslateAll.isChecked = active
         binding.btnTranslateAll.contentDescription =
             getString(if (active) R.string.show_original else R.string.translate)
     }
