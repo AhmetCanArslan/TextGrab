@@ -22,11 +22,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-/**
- * Lets the user pick which backend translates, and give the cloud ones their
- * API key. Tapping a row selects the engine; the gear opens its settings.
- * [onChanged] fires whenever the selection or a configuration changes.
- */
 class TranslationEngineSheet(
     private val activity: AppCompatActivity,
     private val onChanged: () -> Unit,
@@ -73,7 +68,7 @@ class TranslationEngineSheet(
         configure.setOnClickListener { configure(info) }
 
         row.setOnClickListener {
-            // Selecting an engine that cannot run yet goes straight to its setup.
+
             if (!ready) {
                 configure(info)
             } else {
@@ -85,7 +80,6 @@ class TranslationEngineSheet(
         return row
     }
 
-    /** Endpoint, model and key of one cloud engine, with a live "Test" button. */
     private fun configure(info: EngineSettings.Info) {
         val view = activity.layoutInflater.inflate(R.layout.dialog_engine_config, null)
         val config = EngineSettings.config(activity, info.id)
@@ -109,7 +103,7 @@ class TranslationEngineSheet(
         keyInput.setText(config.key)
         modelInput.setText(config.model)
         endpointInput.setText(config.endpoint)
-        // An empty endpoint means "pick it from the key" (DeepL free vs pro).
+
         endpointLayout.placeholderText =
             info.defaultEndpoint.ifBlank { activity.getString(R.string.engine_endpoint_auto) }
 
@@ -186,7 +180,7 @@ class TranslationEngineSheet(
                 EngineSettings.saveConfig(
                     activity, info.id, config.endpoint, config.model, config.key
                 )
-                // Saving a working key is the moment the user means to use it.
+
                 if (EngineSettings.isReady(activity, info.id)) {
                     EngineSettings.select(activity, info.id)
                 }
@@ -197,7 +191,6 @@ class TranslationEngineSheet(
             .show()
     }
 
-    /** Builds an engine straight from unsaved dialog values, for the test run. */
     private fun engineFor(id: String, config: EngineSettings.Config): TranslationEngine =
         when (id) {
             EngineSettings.DEEPL -> DeepLEngine(config)

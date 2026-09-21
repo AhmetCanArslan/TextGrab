@@ -6,11 +6,6 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import kotlin.math.max
 
-/**
- * Tiny, blurred and dimmed copy of an image, stretched over a whole view to
- * fill the margin around an inset preview. Built once per image; a plain
- * downscale plus box blur works on every API level without RenderEffect.
- */
 class BlurredBackdrop(src: Bitmap) {
 
     private val blurred: Bitmap
@@ -27,10 +22,6 @@ class BlurredBackdrop(src: Bitmap) {
         blurred = Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
 
-    /**
-     * Center-crops the blurred image over a [width] x [height] area.
-     * [alpha] fades the whole backdrop in over whatever is already there.
-     */
     fun draw(canvas: Canvas, width: Int, height: Int, alpha: Float = 1f) {
         if (alpha <= 0f) return
         val scale = max(width.toFloat() / blurred.width, height.toFloat() / blurred.height)
@@ -49,10 +40,8 @@ class BlurredBackdrop(src: Bitmap) {
     private companion object {
         const val DOWNSCALE = 24
 
-        /** Dim over the blur, so the inset preview keeps the eye. */
         const val TINT_ALPHA = 0x59
 
-        /** Separable box blur, horizontal then vertical, on packed ARGB pixels. */
         fun boxBlur(px: IntArray, w: Int, h: Int, radius: Int) {
             val tmp = IntArray(px.size)
             pass(px, tmp, len = w, lines = h, radius) { y, x -> y * w + x }

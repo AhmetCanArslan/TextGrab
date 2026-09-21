@@ -19,18 +19,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 
-/**
- * Wrapper around ML Kit's bundled on-device text recognizers (Latin, Chinese,
- * Japanese, Korean). All models ship inside the APK, so recognition works
- * fully offline and without Google Play services (GrapheneOS etc.).
- */
 object OcrEngine {
 
-    /**
-     * One recognized word with its bounding box in bitmap pixel coordinates.
-     * [lineId] is the recognized line; [rowId] groups lines that sit side by
-     * side on the same visual row. Words are stored in reading order.
-     */
     data class Word(
         val text: String,
         val box: RectF,
@@ -41,18 +31,16 @@ object OcrEngine {
     data class Result(
         val words: List<Word>,
         val lineBoxes: List<RectF>,
-        /** ML Kit block (paragraph) of each line, indexed like [lineBoxes]. */
+
         val lineBlocks: List<Int>,
     ) {
         val isEmpty get() = words.isEmpty()
 
-        /** Joins a word range [start..end] back into readable text. */
         fun textOf(start: Int, end: Int): String {
             val sb = StringBuilder()
             for (i in start..end) {
                 if (i > start) {
-                    // ML Kit splits screenshots into many tiny blocks; treating
-                    // those as paragraphs produced lots of empty lines.
+
                     sb.append(if (words[i - 1].rowId != words[i].rowId) "\n" else " ")
                 }
                 sb.append(words[i].text)
@@ -62,7 +50,6 @@ object OcrEngine {
 
         val fullText: String get() = if (isEmpty) "" else textOf(0, words.size - 1)
 
-        /** Text of each line, indexed like [lineBoxes]. */
         val lineTexts: List<String>
             get() {
                 val byLine = words.groupBy { it.lineId }
@@ -74,13 +61,10 @@ object OcrEngine {
 
     private class Line(val box: RectF, val words: List<Pair<String, RectF>>, val blockId: Int)
 
-    /** Filtered recognizer output plus a quality score used to pick between scripts. */
     private class Scored(val lines: List<Line>, val score: Float, val meanConfidence: Float)
 
-    /** Words below this confidence are dropped; icons usually land here. */
     private const val MIN_CONFIDENCE = 0.45f
 
-    /** Latin results below this mean confidence trigger the CJK recognizers. */
     private const val LATIN_TRUSTED_CONFIDENCE = 0.8f
 
     private val latin by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
@@ -89,7 +73,7 @@ object OcrEngine {
     private val korean by lazy { TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()) }
 
     fun warmUp() {
-        // Trigger lazy init + model load off the critical path.
+
         val bmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
         latin.process(InputImage.fromBitmap(bmp, 0))
             .addOnCompleteListener { bmp.recycle() }
@@ -98,8 +82,7 @@ object OcrEngine {
     suspend fun recognize(bitmap: Bitmap): Result {
         val image = InputImage.fromBitmap(bitmap, 0)
         var best = score(latin.run(image))
-        // Latin output on CJK text is low-confidence garbage; only then pay
-        // for the other models, and keep whichever reads the image best.
+
         if (best.lines.isEmpty() || best.meanConfidence < LATIN_TRUSTED_CONFIDENCE) {
             val others = coroutineScope {
                 listOf(chinese, japanese, korean)
@@ -118,7 +101,6 @@ object OcrEngine {
                 .addOnFailureListener { cont.resumeWithException(it) }
         }
 
-    /** Drops icon-like noise and scores the result. */
     private fun score(text: Text): Scored {
         val lines = ArrayList<Line>()
         var score = 0f
@@ -130,7 +112,7 @@ object OcrEngine {
                 for (e in line.elements) {
                     val box = e.boundingBox ?: continue
                     val t = e.text.trim()
-                    // Some ML Kit builds report 0 when confidence is unavailable; don't filter on that.
+
                     val conf = e.confidence.takeIf { it > 0f }
                     if (conf != null) {
                         confSum += conf
@@ -141,7 +123,7 @@ object OcrEngine {
                     score += t.count { it.isLetterOrDigit() } * (conf ?: 0.7f)
                 }
                 if (words.isEmpty()) continue
-                // Rebuild the line box from kept words, so a dropped icon doesn't inflate it.
+
                 val lineBox = RectF(words[0].second).apply { words.forEach { union(it.second) } }
                 lines.add(Line(lineBox, words, blockId))
             }
@@ -154,15 +136,13 @@ object OcrEngine {
         if (t.isEmpty()) return true
         if (conf != null && conf < MIN_CONFIDENCE) return true
         val letters = t.count { it.isLetterOrDigit() }
-        // Pure symbols ("<", "©", "|", "•") are almost always icons or dividers.
+
         if (letters == 0 && t.length <= 2) return true
-        // Lone letters are how icons most often get misread ("O", "Q", "e", "@").
+
         if (t.length == 1 && conf != null && conf < 0.7f) return true
         return false
     }
 
-    /** Orders lines top-to-bottom, grouping vertically overlapping lines into
-     *  one row read left-to-right, so selection follows the visual layout. */
     private fun buildResult(lines: List<Line>): Result {
         val byTop = lines.sortedBy { it.box.centerY() }
         val rows = ArrayList<MutableList<Line>>()

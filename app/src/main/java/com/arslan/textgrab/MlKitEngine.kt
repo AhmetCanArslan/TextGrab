@@ -16,28 +16,14 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
-/**
- * The bundled offline backend. Models (~30 MB per language) are downloaded once
- * on first use, after which it works with no network at all.
- *
- * ML Kit translates one sentence at a time and has no memory between calls, so
- * everything here is about handing it the largest honest unit of text: links
- * and handles become placeholders instead of splitting the sentence around
- * them, shouted labels are lowercased so the model sees real words, and the
- * paragraph goes in as whole sentences rather than arbitrary fragments.
- */
 object MlKitEngine : TranslationEngine {
 
-    /** Longest text handed to the model at once; beyond this quality drops off. */
     private const val MAX_CHARS = 300
 
-    /** Paragraphs translated at the same time. */
     private const val MAX_PARALLEL = 4
 
-    /** Stand-in for a protected token while the sentence is translated. */
     private val PLACEHOLDER = Regex("""\[\s*(\d{1,2})\s*]""")
 
-    /** Repeated UI strings (tabs, buttons, labels) are translated once per session. */
     private val cache = LruCache<String, String>(512)
 
     override suspend fun translate(request: TranslationRequest): List<String> {
@@ -71,11 +57,6 @@ object MlKitEngine : TranslationEngine {
         }
     }
 
-    /**
-     * Translates one paragraph: protected tokens are masked so the sentence
-     * stays whole, shouted text is lowercased so the model sees real words, and
-     * the text goes in as complete sentences rather than arbitrary fragments.
-     */
     private suspend fun translateText(
         client: MlTranslator,
         source: String,
@@ -90,8 +71,7 @@ object MlKitEngine : TranslationEngine {
             tokens.add(m.value)
             "[${tokens.size}]"
         }
-        // ALL-CAPS labels are out-of-vocabulary for the model; translate them as
-        // ordinary words and shout the result back.
+
         val shouted = isShouted(masked)
         if (shouted) masked = masked.lowercase(Locale.forLanguageTag(source))
 
@@ -120,7 +100,6 @@ object MlKitEngine : TranslationEngine {
         return letters.length >= 2 && letters.all { it.isUpperCase() }
     }
 
-    /** Puts the protected tokens back; any the model dropped are appended. */
     private fun restore(text: String, tokens: List<String>): String {
         if (tokens.isEmpty()) return text
         val used = BooleanArray(tokens.size)
@@ -137,7 +116,6 @@ object MlKitEngine : TranslationEngine {
         return if (missing.isEmpty()) out else (out.trimEnd() + " " + missing.joinToString(" ")).trim()
     }
 
-    /** Whole sentences, packed up to [MAX_CHARS] so the model keeps the context. */
     private fun chunks(text: String): List<String> {
         val out = ArrayList<String>()
         val sb = StringBuilder()
@@ -155,7 +133,6 @@ object MlKitEngine : TranslationEngine {
         return out
     }
 
-    /** Splits on sentence ends, leaving decimals and short abbreviations alone. */
     private fun sentences(text: String): List<String> {
         val out = ArrayList<String>()
         var start = 0
@@ -180,25 +157,22 @@ object MlKitEngine : TranslationEngine {
         val c = text[at]
         val next = text.getOrNull(at + 1)
         if (c == '.') {
-            // "3.5", "v1.2"
+
             if (text.getOrNull(at - 1)?.isDigit() == true && next?.isDigit() == true) return false
-            // "Dr.", "e.g.", "No." — an abbreviation, not the end of a sentence.
-            // Sentences really can end in a short word ("it.", "up."), so only a
-            // capitalised or already dotted stub counts.
+
             var j = at - 1
             while (j >= 0 && text[j].isLetter()) j--
             val stub = at - j - 1
             if (stub in 1..2 && (text[j + 1].isUpperCase() || text.getOrNull(j) == '.')) return false
         }
         if (next == null) return true
-        // CJK text has no space after its full stop.
+
         if (c in "。！？" || isCjk(c) || text.getOrNull(at - 1)?.let(::isCjk) == true) return true
         if (!next.isWhitespace()) return false
         val after = text.drop(at + 1).firstOrNull { !it.isWhitespace() } ?: return true
         return !after.isLowerCase()
     }
 
-    /** Last resort for a sentence that alone exceeds the model's comfort zone. */
     private fun splitLong(sentence: String): List<String> {
         if (sentence.length <= MAX_CHARS) return listOf(sentence)
         val out = ArrayList<String>()

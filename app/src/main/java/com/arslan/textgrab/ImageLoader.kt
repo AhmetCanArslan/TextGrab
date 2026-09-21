@@ -9,11 +9,6 @@ import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Decodes an image URI into an upright, memory-safe ARGB bitmap.
- * EXIF rotation is baked into the pixels so that OCR boxes, display
- * and touch coordinates all live in one coordinate space.
- */
 object ImageLoader {
 
     private const val MAX_DIMENSION = 3200

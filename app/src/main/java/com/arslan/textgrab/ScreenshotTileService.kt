@@ -5,19 +5,13 @@ import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
 
-/**
- * Quick-settings tile. Preferred path: the accessibility service captures
- * the current screen itself, so one tile tap goes straight to selectable
- * text. Fallback (service not enabled): open the newest screenshot.
- */
 class ScreenshotTileService : TileService() {
 
     override fun onClick() {
         if (Build.VERSION.SDK_INT >= 31) {
             val capture = CaptureAccessibilityService.instance
             if (capture != null) {
-                // The service dismisses the shade itself; no activity launch
-                // here, or it would end up in the screenshot.
+
                 capture.captureScreenAndOpen()
                 return
             }
@@ -28,8 +22,7 @@ class ScreenshotTileService : TileService() {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    // SINGLE_TOP: reuse a running MainActivity via onNewIntent
-                    // instead of letting CLEAR_TOP recreate it.
+
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             )
         }

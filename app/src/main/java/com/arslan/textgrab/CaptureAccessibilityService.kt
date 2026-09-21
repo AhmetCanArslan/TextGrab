@@ -12,14 +12,8 @@ import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 
-/**
- * Hands a freshly captured screen bitmap from the accessibility service
- * to MainActivity without going through disk.
- */
 object CaptureHolder {
 
-    /** A capture is handed over within a frame or two; anything older than
-     *  this belongs to a request the viewer never picked up. */
     private const val MAX_AGE_MS = 30_000L
 
     private var bitmap: Bitmap? = null
@@ -39,12 +33,6 @@ object CaptureHolder {
     }
 }
 
-/**
- * Screenshot-only accessibility service: lets the quick-settings tile capture
- * the current screen by itself, so "tile tap -> selectable text" needs no
- * manual screenshot first. The service reads no window content and reacts to
- * no events; it only exposes AccessibilityService.takeScreenshot().
- */
 class CaptureAccessibilityService : AccessibilityService() {
 
     companion object {
@@ -52,8 +40,6 @@ class CaptureAccessibilityService : AccessibilityService() {
         var instance: CaptureAccessibilityService? = null
             private set
 
-        /** Delay between dismissing the shade and capturing, so the closing
-         *  animation is never part of the screenshot. */
         private const val SHADE_DISMISS_DELAY_MS = 800L
     }
 
@@ -72,11 +58,6 @@ class CaptureAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) = Unit
     override fun onInterrupt() = Unit
 
-    /**
-     * Dismisses the notification shade (the tile was just tapped, so it is
-     * open), waits for the animation, captures the screen and opens the
-     * viewer. Falls back to the latest-screenshot flow on failure.
-     */
     @RequiresApi(31)
     fun captureScreenAndOpen(dismissShade: Boolean = true, delayMs: Long = 0L) {
         if (!dismissShade) {
@@ -97,7 +78,7 @@ class CaptureAccessibilityService : AccessibilityService() {
                     val hardware = Bitmap.wrapHardwareBuffer(
                         result.hardwareBuffer, result.colorSpace
                     )
-                    // ML Kit and our overlay need CPU-accessible pixels.
+
                     val software = hardware?.copy(Bitmap.Config.ARGB_8888, false)
                     result.hardwareBuffer.close()
                     if (software != null) {
@@ -131,9 +112,7 @@ class CaptureAccessibilityService : AccessibilityService() {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    // Without SINGLE_TOP, CLEAR_TOP tears down a running
-                    // MainActivity and recreates it, racing the capture it
-                    // was just handed. With it, onNewIntent delivers instead.
+
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             )
         })

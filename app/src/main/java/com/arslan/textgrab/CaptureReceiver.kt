@@ -5,14 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 
-/**
- * Lets adb trigger a capture, e.g. for automation or key bindings:
- *
- *   adb shell am broadcast -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
- *
- * Guarded by the DUMP permission in the manifest, which the adb shell holds
- * but regular apps cannot obtain, so other apps cannot trigger captures.
- */
 class CaptureReceiver : BroadcastReceiver() {
 
     companion object {
@@ -26,7 +18,7 @@ class CaptureReceiver : BroadcastReceiver() {
                 if (Build.VERSION.SDK_INT >= 31) {
                     val capture = CaptureAccessibilityService.instance
                     if (capture != null) {
-                        // No shade to dismiss; capture immediately.
+
                         capture.captureScreenAndOpen(dismissShade = false)
                         return
                     }
@@ -44,8 +36,7 @@ class CaptureReceiver : BroadcastReceiver() {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    // SINGLE_TOP: reuse a running MainActivity via onNewIntent
-                    // instead of letting CLEAR_TOP recreate it.
+
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             )
         })

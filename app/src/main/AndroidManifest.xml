@@ -2,20 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Recognition and translation run on-device. The network is used to
-         download translation models the first time a language is used, and to
-         reach a cloud translation service if the user configures one. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Only needed for the "OCR latest screenshot" quick-settings tile -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-    <!-- Needed to resolve web-search / browser handlers on Android 11+ -->
     <queries>
         <intent>
             <action android:name="android.intent.action.WEB_SEARCH" />
@@ -47,13 +42,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Share an image to TextGrab -->
+
             <intent-filter android:label="@string/intent_extract_text">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
             </intent-filter>
-            <!-- "Open with" for image files -->
+
             <intent-filter android:label="@string/intent_extract_text">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -61,7 +56,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Default digital assistant: long-press home / navigation handle -->
         <activity
             android:name=".AssistActivity"
             android:exported="true"
@@ -88,7 +82,6 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- adb trigger; DUMP is held by the adb shell, not by normal apps -->
         <receiver
             android:name=".CaptureReceiver"
             android:exported="true"

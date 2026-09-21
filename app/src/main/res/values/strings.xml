@@ -58,7 +58,7 @@
     <string name="language_delete">Delete</string>
     <string name="language_delete_confirm">Delete the %1$s language pack?</string>
     <string name="language_download_failed">Download failed. %1$s</string>
-    <!-- Translation engines -->
+
     <string name="engine_title">Translation engine</string>
     <string name="engine_hint">Choose what does the translating. The built-in engine runs on this device; the others send the recognized text to a service you configure with your own API key.</string>
     <string name="engine_on_device">On-device (ML Kit)</string>

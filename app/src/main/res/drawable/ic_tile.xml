@@ -5,14 +5,14 @@
     android:viewportWidth="24"
     android:viewportHeight="24"
     android:tint="?attr/colorControlNormal">
-    <!-- viewfinder corners -->
+
     <path
         android:strokeColor="#FFFFFFFF"
         android:strokeWidth="2"
         android:strokeLineCap="round"
         android:fillColor="#00000000"
         android:pathData="M3,7V5a2,2 0 0,1 2,-2h2 M17,3h2a2,2 0 0,1 2,2v2 M21,17v2a2,2 0 0,1 -2,2h-2 M7,21H5a2,2 0 0,1 -2,-2v-2" />
-    <!-- text lines -->
+
     <path
         android:strokeColor="#FFFFFFFF"
         android:strokeWidth="2"

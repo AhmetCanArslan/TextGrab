@@ -16,8 +16,6 @@ android {
         versionName = "1.1"
     }
 
-    // Signing credentials live in keystore/keystore.properties (not in git).
-    // Without that file the release build is simply unsigned.
     val keystoreProps = Properties().apply {
         val f = rootProject.file("keystore/keystore.properties")
         if (f.exists()) f.inputStream().use { load(it) }
@@ -68,12 +66,12 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.1")
     implementation("androidx.exifinterface:exifinterface:1.4.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    // On-device neural text recognition, model bundled in the APK — no Play Services needed
+
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
     implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
     implementation("com.google.mlkit:text-recognition-korean:16.0.1")
-    // Language identification model is bundled; translation models are downloaded on first use
+
     implementation("com.google.mlkit:language-id:17.0.6")
     implementation("com.google.mlkit:translate:17.0.3")
 }

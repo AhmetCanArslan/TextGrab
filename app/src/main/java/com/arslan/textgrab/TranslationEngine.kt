@@ -8,36 +8,21 @@ import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * One batch of work for a backend: whole paragraphs in reading order, taken
- * from a single screen. Engines that can see all of them at once (the cloud
- * ones) should translate them together — that shared context is the whole
- * point of handing them over as a batch.
- */
 class TranslationRequest(
     val texts: List<String>,
-    /** Locally detected language of each text, same size as [texts]. */
+
     val sources: List<String>,
     val target: String,
-    /** Fires once before a slow first-time step, e.g. a model download. */
+
     val onPrepare: () -> Unit = {},
 )
 
-/** A translation backend. Returns exactly one result per input text. */
 interface TranslationEngine {
     suspend fun translate(request: TranslationRequest): List<String>
 }
 
-/** Failure with a message that is safe and useful to show to the user. */
 class TranslationException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-/**
- * Which backend translates, and the credentials the cloud ones need.
- *
- * Keys live in their own preferences file so it can be kept out of backups
- * (see `res/xml/backup_rules.xml`); nothing is ever sent anywhere except to
- * the endpoint of the engine the user picked.
- */
 object EngineSettings {
 
     const val ON_DEVICE = "on_device"
@@ -46,10 +31,8 @@ object EngineSettings {
     const val OPENAI = "openai"
     const val ANTHROPIC = "anthropic"
 
-    /** A ready-made endpoint/model pair offered in the configuration dialog. */
     class Preset(val label: String, val endpoint: String, val model: String)
 
-    /** Everything the UI needs to show and configure one engine. */
     class Info(
         val id: String,
         @get:StringRes val title: Int,
@@ -96,8 +79,7 @@ object EngineSettings {
             defaultEndpoint = "https://api.openai.com/v1",
             defaultModel = "gpt-4o-mini",
             keyHelp = R.string.engine_key_help_openai,
-            // Anything that speaks /chat/completions fits here; the presets
-            // only save typing, every field stays editable.
+
             presets = listOf(
                 Preset("OpenAI", "https://api.openai.com/v1", "gpt-4o-mini"),
                 Preset("Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"),
@@ -127,11 +109,9 @@ object EngineSettings {
 
     fun info(id: String): Info = engines.firstOrNull { it.id == id } ?: engines.first()
 
-    /** Endpoint, model and key of one engine, with the defaults filled in. */
     class Config(val endpoint: String, val model: String, val key: String) {
         val hasKey get() = key.isNotBlank()
 
-        /** A locally hosted endpoint, which is trusted without a key. */
         val isLocal get() = LOCAL.containsMatchIn(endpoint)
     }
 
@@ -174,21 +154,17 @@ object EngineSettings {
             .remove("$id.endpoint").remove("$id.model").remove("$id.key").apply()
     }
 
-    /** True once the engine can actually run. */
     fun isReady(context: Context, id: String): Boolean =
         isUsable(info(id), config(context, id))
 
-    /** Same check against values that may not be saved yet. */
     fun isUsable(info: Info, config: Config): Boolean =
         !info.needsKey || config.hasKey || config.isLocal
 
-    /** A model server on this device or on the emulator host needs no key. */
     private val LOCAL = Regex(
         """^https?://(localhost|127\.0\.0\.1|10\.0\.2\.2|\[::1])([:/]|$)""",
         RegexOption.IGNORE_CASE
     )
 
-    /** Builds the engine for [id], or throws if the user still has to configure it. */
     fun engine(context: Context, id: String = selectedId(context)): TranslationEngine {
         val info = info(id)
         val config = config(context, id)
@@ -207,7 +183,6 @@ object EngineSettings {
     }
 }
 
-/** Minimal JSON-over-HTTPS client; the app carries no networking library. */
 internal object Http {
 
     private const val CONNECT_TIMEOUT_MS = 15_000
@@ -246,7 +221,6 @@ internal object Http {
 
     private fun badUrl(url: String) = "Invalid endpoint: $url"
 
-    /** Turns an HTTP failure into something the user can act on. */
     private fun describe(status: Int, body: String): String {
         val detail = detail(body)
         val reason = when (status) {
@@ -262,7 +236,6 @@ internal object Http {
         return if (detail.isEmpty()) "$reason ($status)" else "$reason ($status): $detail"
     }
 
-    /** Pulls the human-readable part out of an error body, whatever its shape. */
     private fun detail(body: String): String {
         val trimmed = body.trim()
         if (trimmed.isEmpty()) return ""

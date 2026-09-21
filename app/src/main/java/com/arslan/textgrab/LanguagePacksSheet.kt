@@ -18,11 +18,6 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-/**
- * Lists every translation language with its model state. Tapping a row makes it
- * the translation target; the trailing button downloads or deletes the model.
- * [onChanged] fires whenever the target or the set of downloaded models changes.
- */
 class LanguagePacksSheet(
     private val activity: AppCompatActivity,
     private val onChanged: () -> Unit,
@@ -53,7 +48,7 @@ class LanguagePacksSheet(
 
     private fun render() {
         val target = Translator.defaultTarget(activity)
-        // Downloaded languages first, each group alphabetical.
+
         val codes = Translator.languages.sortedWith(
             compareBy<String> { it !in downloaded }.thenBy { Translator.displayName(it) }
         )

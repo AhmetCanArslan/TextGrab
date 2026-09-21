@@ -5,22 +5,8 @@ import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
-/**
- * The backends that translate over the network, each driven by the user's own
- * API key. They all receive the whole screen as one batch, which is what lets
- * them translate a paragraph knowing what the rest of the screen says — the
- * context the on-device model structurally cannot have.
- */
-
-// --------------------------------------------------------------------- DeepL
-
-/**
- * DeepL's free or pro API. The endpoint follows the key: keys ending in ":fx"
- * belong to the free tier and only work on api-free.deepl.com.
- */
 class DeepLEngine(private val config: EngineSettings.Config) : TranslationEngine {
 
-    /** Sent as one request; DeepL allows 50 texts per call. */
     private val batchSize = 40
 
     override suspend fun translate(request: TranslationRequest): List<String> {
@@ -31,8 +17,7 @@ class DeepLEngine(private val config: EngineSettings.Config) : TranslationEngine
                 put("text", JSONArray(batch))
                 put("target_lang", target)
                 put("preserve_formatting", true)
-                // Only claim a source language when the whole batch agrees;
-                // otherwise let DeepL detect it per text.
+
                 sourceCode(request.sources)?.let { put("source_lang", it) }
             }
             val response = Http.postJson(
@@ -66,7 +51,7 @@ class DeepLEngine(private val config: EngineSettings.Config) : TranslationEngine
             )
 
     private companion object {
-        /** Targets DeepL wants as a regional variant. */
+
         val TARGET = mapOf("en" to "EN-US", "pt" to "PT-BR", "no" to "NB", "zh" to "ZH")
         val SOURCE = mapOf("no" to "NB")
         val SUPPORTED_TARGETS = setOf(
@@ -82,12 +67,8 @@ class DeepLEngine(private val config: EngineSettings.Config) : TranslationEngine
     }
 }
 
-// ------------------------------------------------------- Google Cloud Translation
-
-/** Google Cloud Translation v2, authenticated with a plain API key. */
 class GoogleTranslateEngine(private val config: EngineSettings.Config) : TranslationEngine {
 
-    /** v2 accepts 128 segments per call; stay well under it. */
     private val batchSize = 50
 
     override suspend fun translate(request: TranslationRequest): List<String> {
@@ -113,22 +94,14 @@ class GoogleTranslateEngine(private val config: EngineSettings.Config) : Transla
         return out
     }
 
-    /** v2 HTML-escapes its output even with format=text. */
     private fun unescape(text: String): String = text
         .replace("&quot;", "\"").replace("&#39;", "'").replace("&apos;", "'")
         .replace("&lt;", "<").replace("&gt;", ">").replace("&nbsp;", " ")
         .replace("&amp;", "&")
 }
 
-// ----------------------------------------------------------------------- LLMs
-
-/**
- * Shared shape of the LLM backends: the screen goes in as numbered segments so
- * the model can use the whole screen as context, and comes back the same way.
- */
 abstract class LlmEngine(protected val config: EngineSettings.Config) : TranslationEngine {
 
-    /** Segments per request, and the character budget that also caps a batch. */
     private val batchSize = 30
     private val batchChars = 4000
 
@@ -156,7 +129,6 @@ abstract class LlmEngine(protected val config: EngineSettings.Config) : Translat
         return out
     }
 
-    /** Indices grouped into requests, bounded by both segment count and size. */
     private fun batches(texts: List<String>): List<List<Int>> {
         val out = ArrayList<List<Int>>()
         var current = ArrayList<Int>()
@@ -189,7 +161,6 @@ abstract class LlmEngine(protected val config: EngineSettings.Config) : Translat
         - If a segment is a single word with no context, translate it the way that word is normally used in a user interface.
     """.trimIndent()
 
-    /** Tolerant of the model's formatting: any "<n>." line opens segment n. */
     private fun parse(answer: String, size: Int): Array<String?> {
         val out = arrayOfNulls<String>(size)
         val head = Regex("""^\s*(\d{1,3})\s*[.)\]]\s*(.*)$""")
@@ -211,7 +182,7 @@ abstract class LlmEngine(protected val config: EngineSettings.Config) : Translat
             }
         }
         flush()
-        // A single-segment batch may come back as bare text, without numbering.
+
         if (size == 1 && out[0].isNullOrBlank()) {
             answer.trim().takeIf { it.isNotEmpty() }?.let { out[0] = it }
         }
@@ -223,10 +194,6 @@ abstract class LlmEngine(protected val config: EngineSettings.Config) : Translat
             ?: throw TranslationException("The model returned an empty answer: ${json.toString().take(200)}")
 }
 
-/**
- * Anything speaking OpenAI's /chat/completions: OpenAI itself, Gemini's
- * compatibility endpoint, OpenRouter, Groq, a local Ollama or LM Studio.
- */
 class OpenAiEngine(config: EngineSettings.Config) : LlmEngine(config) {
 
     override suspend fun complete(system: String, user: String, outputBudget: Int): String {
@@ -244,13 +211,13 @@ class OpenAiEngine(config: EngineSettings.Config) : LlmEngine(config) {
                 }
             )
         }
-        // A local server (Ollama, LM Studio) is usually open, with no key at all.
+
         val headers =
             if (config.hasKey) mapOf("Authorization" to "Bearer ${config.key}") else emptyMap()
         val response = try {
             Http.postJson(url, headers, body.toString())
         } catch (e: TranslationException) {
-            // Some newer models only accept the default temperature.
+
             if (e.message?.contains("temperature", ignoreCase = true) != true) throw e
             Http.postJson(url, headers, body.apply { remove("temperature") }.toString())
         }
@@ -262,7 +229,6 @@ class OpenAiEngine(config: EngineSettings.Config) : LlmEngine(config) {
     }
 }
 
-/** Anthropic's Messages API. */
 class AnthropicEngine(config: EngineSettings.Config) : LlmEngine(config) {
 
     override suspend fun complete(system: String, user: String, outputBudget: Int): String {

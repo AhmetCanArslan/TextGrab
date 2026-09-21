@@ -24,30 +24,18 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-/**
- * Renders an image with its recognized words and provides iOS-Live-Text-style
- * interaction: tap a word to select it, long-press and drag to sweep,
- * drag the round handles to refine, pinch to zoom, double-tap to toggle zoom.
- *
- * All word boxes are in bitmap pixel space; [imageMatrix] maps them to view space.
- */
 class SelectableOcrView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
     interface Listener {
-        /** [text] is null when the selection was cleared. [anchor] is in view coordinates. */
+
         fun onSelectionChanged(text: String?, anchor: RectF?)
     }
 
     var listener: Listener? = null
 
-    /**
-     * Capture preview style: the image is shrunk below [topInset] with rounded
-     * corners over a blurred copy of itself, so text at the screen edges stays
-     * easy to reach. Otherwise the image fills the view on a dark background.
-     */
     var capturePreview = false
         set(value) {
             if (field == value) return
@@ -56,7 +44,6 @@ class SelectableOcrView @JvmOverloads constructor(
             refit()
         }
 
-    /** Space reserved at the top for the toolbar; only applies to [capturePreview]. */
     var topInset = 0f
         set(value) {
             if (field == value) return
@@ -64,12 +51,6 @@ class SelectableOcrView @JvmOverloads constructor(
             refit()
         }
 
-    /**
-     * Per-line translations, indexed like [OcrEngine.Result.lineBoxes]. When set,
-     * each translated line is painted over with its translation and selections
-     * copy the translated text; null entries keep the original line. A null
-     * list shows the original image.
-     */
     var translations: List<String?>? = null
         set(value) {
             field = value
@@ -79,10 +60,8 @@ class SelectableOcrView @JvmOverloads constructor(
             invalidate()
         }
 
-    /** Background and text color per line, sampled once from the bitmap. */
     private var overlayColors: List<Pair<Int, Int>>? = null
 
-    /** Text size (bitmap pixels) and horizontal scale per line, shared across a paragraph. */
     private var overlayStyles: List<Pair<Float, Float>>? = null
 
     private var bitmap: Bitmap? = null
@@ -90,15 +69,9 @@ class SelectableOcrView @JvmOverloads constructor(
     private var lines: LineIndex? = null
     private var backdrop: BlurredBackdrop? = null
 
-    /**
-     * How far the capture transition has run: 0 draws the image as a pixel-exact
-     * copy of the screen it was taken from, 1 is the resting preview. Anything in
-     * between is the animation, during which touch input is ignored.
-     */
     private var captureProgress = 1f
     private var captureAnimator: ValueAnimator? = null
 
-    /** Set by [playCaptureEntry] when the view has no size to animate in yet. */
     private var entryPending = false
 
     private val imageMatrix = Matrix()
@@ -106,14 +79,12 @@ class SelectableOcrView @JvmOverloads constructor(
     private var fitScale = 1f
     private var currentScale = 1f
 
-    // Selection = inclusive word index range, -1 when empty.
     private var selStart = -1
     private var selEnd = -1
 
     private var dragMode = DragMode.NONE
     private var dragAnchorWord = -1
 
-    /** Touch-to-handle offset captured on grab, so the finger never hides the target. */
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
 
@@ -156,16 +127,11 @@ class SelectableOcrView @JvmOverloads constructor(
     private val handleRadius get() = dp(7f)
     private val handleTouchRadius get() = dp(26f)
 
-    // Layout derived from the preview style.
     private val fitFraction get() = if (capturePreview) CAPTURE_FIT_FRACTION else 1f
     private val effectiveTopInset get() = if (capturePreview) topInset else 0f
-    /** Share of the free vertical space placed above the image: 0.5 centers it. */
+
     private val topGapShare get() = if (capturePreview) 0.2f else 0.5f
 
-    /**
-     * Shows [bmp] before recognition has run. The image is pannable and
-     * zoomable right away; words light up once [setContent] supplies them.
-     */
     fun setImage(bmp: Bitmap) {
         bitmap = bmp
         result = null
@@ -178,7 +144,6 @@ class SelectableOcrView @JvmOverloads constructor(
         invalidate()
     }
 
-    /** Attaches [ocr] to an image, keeping the current zoom when it is already shown. */
     fun setContent(bmp: Bitmap, ocr: OcrEngine.Result) {
         val sameImage = bitmap === bmp
         bitmap = bmp
@@ -231,7 +196,7 @@ class SelectableOcrView @JvmOverloads constructor(
             val r = result ?: return null
             if (selStart == -1) return null
             val t = translations ?: return r.textOf(selStart, selEnd)
-            // Whole translated lines: word boundaries don't survive translation.
+
             val originals = r.lineTexts
             val sb = StringBuilder()
             var prev: OcrEngine.Word? = null
@@ -244,8 +209,6 @@ class SelectableOcrView @JvmOverloads constructor(
             }
             return sb.toString()
         }
-
-    // ----------------------------------------------------------------- layout
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -260,20 +223,14 @@ class SelectableOcrView @JvmOverloads constructor(
         invalidate()
     }
 
-    /** A placement of the image in view space; the matrix is a scale plus a translate. */
     private class Fit(val scale: Float, val tx: Float, val ty: Float)
 
-    /** Where the image comes to rest: shrunk below the toolbar for captures. */
     private fun restFit(bmp: Bitmap): Fit {
         val availHeight = max(1f, height - effectiveTopInset)
         val scale = min(width.toFloat() / bmp.width, availHeight / bmp.height) * fitFraction
         return Fit(scale, (width - bmp.width * scale) / 2f, fittedTop(bmp.height * scale))
     }
 
-    /**
-     * The placement that makes the image indistinguishable from the screen it
-     * was captured from: covering the view, centred, at native scale.
-     */
     private fun coverFit(bmp: Bitmap): Fit {
         val scale = max(width.toFloat() / bmp.width, height.toFloat() / bmp.height)
         return Fit(
@@ -286,7 +243,7 @@ class SelectableOcrView @JvmOverloads constructor(
     private fun resetFit() {
         val bmp = bitmap ?: return
         val rest = restFit(bmp)
-        // Zoom limits always refer to the resting size, never to a mid-animation one.
+
         fitScale = rest.scale
         val fit = if (captureProgress >= 1f) rest else {
             val cover = coverFit(bmp)
@@ -304,16 +261,6 @@ class SelectableOcrView @JvmOverloads constructor(
         syncInverse()
     }
 
-    // ------------------------------------------------------- capture transition
-
-    /**
-     * Plays the capture transition. The screenshot is of the very screen behind
-     * this window, so starting at [coverFit] means the first frame is
-     * indistinguishable from what the user was already looking at: the capture
-     * reads as that screen freezing and settling, not as an app opening over it.
-     *
-     * Deferred until the view has been measured and has put one frame on screen.
-     */
     fun playCaptureEntry() {
         captureAnimator?.cancel()
         captureProgress = 0f
@@ -322,7 +269,6 @@ class SelectableOcrView @JvmOverloads constructor(
         invalidate()
     }
 
-    /** Reverses the entry, leaving the screen exactly as the capture found it. */
     fun playCaptureExit(onEnd: () -> Unit) {
         if (bitmap == null || width == 0 || height == 0 || captureProgress <= 0f) {
             onEnd()
@@ -332,14 +278,8 @@ class SelectableOcrView @JvmOverloads constructor(
         animateCaptureTo(0f, EMPHASIZED_ACCELERATE, onEnd)
     }
 
-    /** True while the transition owns the matrix, so gestures must keep off it. */
     val isAnimatingCapture get() = captureAnimator != null
 
-    /**
-     * Whether there is a played-in capture to play back out. The exit runs from
-     * the resting placement, so a zoomed image leaves the ordinary way instead
-     * of snapping back to fit first.
-     */
     val canPlayCaptureExit
         get() = bitmap != null && captureProgress > 0f && width > 0 && height > 0 &&
             abs(currentScale - fitScale) < ZOOM_EPSILON
@@ -378,11 +318,9 @@ class SelectableOcrView @JvmOverloads constructor(
         }
     }
 
-    /** Top edge for content of [contentHeight] that fits in the space below the inset. */
     private fun fittedTop(contentHeight: Float) =
         effectiveTopInset + (height - effectiveTopInset - contentHeight) * topGapShare
 
-    /** Keeps the image centered while it fits, and its edges on screen once zoomed past it. */
     private fun clampTranslation() {
         val rect = mappedImageRect() ?: return
         val dx = if (rect.width() <= width) {
@@ -403,7 +341,6 @@ class SelectableOcrView @JvmOverloads constructor(
         imageMatrix.postTranslate(dx, dy)
     }
 
-    /** Re-clamps after any matrix change and refreshes everything that depends on it. */
     private fun onTransformed() {
         clampTranslation()
         syncInverse()
@@ -427,20 +364,16 @@ class SelectableOcrView @JvmOverloads constructor(
         return RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()).also { imageMatrix.mapRect(it) }
     }
 
-    // ---------------------------------------------------------------- drawing
-
     override fun onDraw(canvas: Canvas) {
         val bmp = bitmap
         val blur = backdrop
-        // Opaque base under the backdrop: while the backdrop is still fading in,
-        // the margins must not show the window through.
+
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), backgroundPaint)
         if (bmp != null && blur != null) blur.draw(canvas, width, height, captureProgress)
         if (bmp == null) return
 
         if (blur != null) {
-            // Corners round off as the image pulls away from the screen edges;
-            // at progress 0 it is a square, full-bleed copy of the screen.
+
             val radius = dp(PREVIEW_CORNER_RADIUS_DP) * captureProgress
             clipPath.rewind()
             clipPath.addRoundRect(mappedImageRect()!!, radius, radius, Path.Direction.CW)
@@ -452,8 +385,6 @@ class SelectableOcrView @JvmOverloads constructor(
             canvas.drawBitmap(bmp, imageMatrix, bitmapPaint)
         }
 
-        // Start the entry only once the identity frame has actually been drawn,
-        // so the transition never begins behind the splash or a blank window.
         if (entryPending) {
             entryPending = false
             post { if (captureProgress < 1f) animateCaptureTo(1f, EMPHASIZED_DECELERATE) }
@@ -469,7 +400,6 @@ class SelectableOcrView @JvmOverloads constructor(
         } else if (selStart == -1) drawHints(canvas, r) else drawSelection(canvas, r)
     }
 
-    /** Covers each translated line with its sampled background and draws the translation. */
     private fun drawTranslations(
         canvas: Canvas,
         r: OcrEngine.Result,
@@ -499,11 +429,6 @@ class SelectableOcrView @JvmOverloads constructor(
         canvas.restore()
     }
 
-    /**
-     * Shrinks text that doesn't fit its line (down to [MIN_TEXT_SHRINK]), uses the
-     * smallest size of each paragraph for all its lines so it reads as one piece,
-     * then condenses any line that still overflows.
-     */
     private fun computeOverlayStyles(texts: List<String?>): List<Pair<Float, Float>> {
         val r = result ?: return emptyList()
         val paint = Paint(overlayTextPaint)
@@ -533,7 +458,7 @@ class SelectableOcrView @JvmOverloads constructor(
     private fun computeOverlayColors(): List<Pair<Int, Int>> {
         val src = bitmap ?: return emptyList()
         val r = result ?: return emptyList()
-        // Hardware bitmaps (instant captures) can't be read pixel by pixel.
+
         val bmp = if (Build.VERSION.SDK_INT >= 26 && src.config == Bitmap.Config.HARDWARE)
             src.copy(Bitmap.Config.ARGB_8888, false) else src
         return r.lineBoxes.map { box ->
@@ -543,7 +468,6 @@ class SelectableOcrView @JvmOverloads constructor(
         }.also { if (bmp !== src) bmp.recycle() }
     }
 
-    /** Average color of a thin ring just outside [box], which is usually plain background. */
     private fun borderColor(bmp: Bitmap, box: RectF): Int {
         val margin = max(2f, box.height() * 0.15f)
         val left = (box.left - margin).toInt().coerceIn(0, bmp.width - 1)
@@ -562,7 +486,6 @@ class SelectableOcrView @JvmOverloads constructor(
         return Color.rgb((red / n).toInt(), (green / n).toInt(), (blue / n).toInt())
     }
 
-    /** Subtle hint that text was found and is selectable. */
     private fun drawHints(canvas: Canvas, r: OcrEngine.Result) {
         for (box in r.lineBoxes) {
             tmpRect.set(box)
@@ -574,7 +497,6 @@ class SelectableOcrView @JvmOverloads constructor(
         }
     }
 
-    /** One rounded rect per line spanning the selected words, plus iOS-style handles. */
     private fun drawSelection(canvas: Canvas, r: OcrEngine.Result) {
         var first: RectF? = null
         var last: RectF? = null
@@ -601,8 +523,6 @@ class SelectableOcrView @JvmOverloads constructor(
             canvas.drawCircle(it.right, it.bottom + handleRadius * 0.7f, handleRadius, handlePaint)
         }
     }
-
-    // --------------------------------------------------------------- gestures
 
     private val scaleDetector = ScaleGestureDetector(context,
         object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -667,8 +587,7 @@ class SelectableOcrView @JvmOverloads constructor(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        // The transition owns the matrix while it runs; a stray touch mid-flight
-        // would otherwise leave the image stranded between the two placements.
+
         if (isAnimatingCapture) return true
 
         when (event.actionMasked) {
@@ -679,14 +598,13 @@ class SelectableOcrView @JvmOverloads constructor(
                     else -> DragMode.NONE
                 }
                 if (dragMode != DragMode.NONE) {
-                    // Aim at the middle of the handle's word, not at the finger.
+
                     val start = dragMode == DragMode.HANDLE_START
                     val box = handleWordRect(start)
                     dragOffsetX = (if (start) box.left else box.right) - event.x
                     dragOffsetY = box.centerY() - event.y
                     parent?.requestDisallowInterceptTouchEvent(true)
-                    // Keep handle drags away from the gesture detectors, otherwise
-                    // their long-press timer fires mid-drag and resets the selection.
+
                     return true
                 }
             }
@@ -723,7 +641,7 @@ class SelectableOcrView @JvmOverloads constructor(
             }
             DragMode.HANDLE_START -> {
                 if (nearest <= selEnd) selStart = nearest else {
-                    // Crossed over the other handle: swap roles.
+
                     selStart = selEnd
                     selEnd = nearest
                     dragMode = DragMode.HANDLE_END
@@ -748,9 +666,6 @@ class SelectableOcrView @JvmOverloads constructor(
         }
     }
 
-    // ------------------------------------------------------------- hit tests
-
-    /** Maps a view point into bitmap space. */
     private fun toBitmapSpace(x: Float, y: Float): FloatArray =
         floatArrayOf(x, y).also { inverseMatrix.mapPoints(it) }
 
@@ -766,7 +681,6 @@ class SelectableOcrView @JvmOverloads constructor(
         return index.nearestWord(x, y)
     }
 
-    /** View-space box of the word under the start or end handle, grown to the selection padding. */
     private fun handleWordRect(start: Boolean): RectF {
         val words = result!!.words
         return RectF(words[if (start) selStart else selEnd].box).also {
@@ -796,25 +710,18 @@ class SelectableOcrView @JvmOverloads constructor(
     }
 
     companion object {
-        /**
-         * Length of the capture transition. Long enough to read as the screen
-         * settling into place, short enough that nothing is ever waited on.
-         */
+
         const val CAPTURE_TRANSITION_MS = 420f
 
-        /** Below this, a scale counts as untouched by the user. */
         private const val ZOOM_EPSILON = 0.001f
 
-        /** Material 3 emphasized easing: a quick start that glides into rest. */
         val EMPHASIZED_DECELERATE = PathInterpolator(0.05f, 0.7f, 0.1f, 1f)
 
-        /** Its mirror, for leaving: eases out of rest, then goes quickly. */
         val EMPHASIZED_ACCELERATE = PathInterpolator(0.3f, 0f, 0.8f, 0.15f)
 
-        /** Smallest text size, relative to the line height, before condensing instead. */
         private const val MIN_TEXT_SHRINK = 0.6f
         private const val MIN_TEXT_SCALE_X = 0.7f
-        /** Share of the free area a capture preview fills. */
+
         private const val CAPTURE_FIT_FRACTION = 0.87f
         private const val PREVIEW_CORNER_RADIUS_DP = 24f
     }
