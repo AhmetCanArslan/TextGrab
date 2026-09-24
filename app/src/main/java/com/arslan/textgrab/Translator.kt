@@ -10,6 +10,9 @@ import com.google.mlkit.nl.translate.TranslateRemoteModel
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 internal val PROTECTED = Regex("""https?://\S+|www\.\S+|[\w.+-]+@[\w-]+\.[\w.]+|[@#]\w+""")
 
@@ -27,9 +30,15 @@ object Translator {
     private const val PREFS = "translate"
     private const val KEY_TARGET = "target"
 
-    private const val MIN_IDENTIFY_LENGTH = 20
+    private const val MIN_IDENTIFY_LENGTH = 12
 
-    private const val MIN_IDENTIFY_CONFIDENCE = 0.6f
+    private const val MIN_IDENTIFY_CONFIDENCE = 0.5f
+
+    /** Short snippets identify poorly, so only a strong guess is allowed to override the screen. */
+    private const val SHORT_IDENTIFY_CONFIDENCE = 0.7f
+
+    /** How much of the screen a second language must account for to be usable as a fallback. */
+    private const val MIN_SECONDARY_CONFIDENCE = 0.2f
 
     private const val MAX_LINE_GAP = 0.9f
 
@@ -77,8 +86,24 @@ object Translator {
         val paragraphs = paragraphs(result, texts)
         if (paragraphs.isEmpty()) return Outcome(out.toList(), emptySet())
 
-        val screenLanguage = dominantLanguage(result.fullText) ?: TranslateLanguage.ENGLISH
-        for (p in paragraphs) p.source = identifySource(p.text, screenLanguage)
+        val screen = screenLanguages(result.fullText)
+        val screenLanguage = screen.firstOrNull()?.first ?: TranslateLanguage.ENGLISH
+
+        // When the screen as a whole reads as the target language, anything the identifier is
+        // unsure about would inherit the target and be dropped from [pending] - which is how
+        // short labels in another language end up never being translated. Fall back to the
+        // strongest other language on screen instead.
+        val fallback = if (screenLanguage != target) {
+            screenLanguage
+        } else {
+            screen.firstOrNull { it.first != target && it.second >= MIN_SECONDARY_CONFIDENCE }
+                ?.first ?: target
+        }
+        coroutineScope {
+            paragraphs.map { p ->
+                async { p.source = identifySource(p.text, screenLanguage, fallback, target) }
+            }.awaitAll()
+        }
 
         val pending = paragraphs.filter { it.source != target }
         if (pending.isEmpty()) return Outcome(out.toList(), emptySet())
@@ -218,17 +243,33 @@ object Translator {
         return out.map { it.toString() }
     }
 
-    private suspend fun dominantLanguage(text: String): String? =
-        candidates(text).firstNotNullOfOrNull { TranslateLanguage.fromLanguageTag(it.first) }
-
-    private suspend fun identifySource(text: String, screenLanguage: String): String {
-        if (text.count { it.isLetter() } < MIN_IDENTIFY_LENGTH) return screenLanguage
-        for ((tag, confidence) in candidates(text)) {
-            val code = TranslateLanguage.fromLanguageTag(tag) ?: continue
-            if (code == screenLanguage) return screenLanguage
-            return if (confidence >= MIN_IDENTIFY_CONFIDENCE) code else screenLanguage
+    /** Every language on screen that ML Kit can translate, strongest first. */
+    private suspend fun screenLanguages(text: String): List<Pair<String, Float>> =
+        candidates(text).mapNotNull { (tag, confidence) ->
+            TranslateLanguage.fromLanguageTag(tag)?.let { it to confidence }
         }
-        return screenLanguage
+
+    private suspend fun identifySource(
+        text: String,
+        screenLanguage: String,
+        fallback: String,
+        target: String,
+    ): String {
+        val best = candidates(text).firstNotNullOfOrNull { (tag, confidence) ->
+            TranslateLanguage.fromLanguageTag(tag)?.let { it to confidence }
+        } ?: return fallback
+
+        val (code, confidence) = best
+        val floor = if (text.count { it.isLetter() } >= MIN_IDENTIFY_LENGTH) {
+            MIN_IDENTIFY_CONFIDENCE
+        } else {
+            SHORT_IDENTIFY_CONFIDENCE
+        }
+        if (confidence >= floor) return code
+
+        // Weak guess: trust the screen, but never turn a snippet the identifier already reads
+        // as the target language into something to translate.
+        return if (code == target) target else if (code == screenLanguage) screenLanguage else fallback
     }
 
     private suspend fun candidates(text: String): List<Pair<String, Float>> {
