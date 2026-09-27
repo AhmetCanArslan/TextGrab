@@ -14,9 +14,6 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.max
 import kotlin.math.min
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 object OcrEngine {
@@ -67,29 +64,38 @@ object OcrEngine {
 
     private const val LATIN_TRUSTED_CONFIDENCE = 0.8f
 
-    private val latin by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
-    private val chinese by lazy { TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()) }
-    private val japanese by lazy { TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build()) }
-    private val korean by lazy { TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()) }
+    private val cjkOptions = listOf(
+        ChineseTextRecognizerOptions.Builder().build(),
+        JapaneseTextRecognizerOptions.Builder().build(),
+        KoreanTextRecognizerOptions.Builder().build(),
+    )
+
+    private var latin: TextRecognizer? = null
+
+    private fun latin(): TextRecognizer =
+        latin ?: TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).also { latin = it }
 
     fun warmUp() {
-
+        if (latin != null) return
         val bmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
-        latin.process(InputImage.fromBitmap(bmp, 0))
+        latin().process(InputImage.fromBitmap(bmp, 0))
             .addOnCompleteListener { bmp.recycle() }
+    }
+
+    fun release() {
+        latin?.close()
+        latin = null
     }
 
     suspend fun recognize(bitmap: Bitmap): Result {
         val image = InputImage.fromBitmap(bitmap, 0)
-        var best = score(latin.run(image))
+        var best = score(latin().run(image))
 
         if (best.lines.isEmpty() || best.meanConfidence < LATIN_TRUSTED_CONFIDENCE) {
-            val others = coroutineScope {
-                listOf(chinese, japanese, korean)
-                    .map { async { score(it.run(image)) } }
-                    .awaitAll()
+            for (options in cjkOptions) {
+                val candidate = TextRecognition.getClient(options).use { score(it.run(image)) }
+                if (candidate.score > best.score) best = candidate
             }
-            others.maxByOrNull { it.score }?.let { if (it.score > best.score) best = it }
         }
         return buildResult(best.lines)
     }

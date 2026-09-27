@@ -5,6 +5,7 @@ import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.languageid.LanguageIdentification
 import com.google.mlkit.nl.languageid.LanguageIdentificationOptions
+import com.google.mlkit.nl.languageid.LanguageIdentifier
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.TranslateRemoteModel
 import java.util.Locale
@@ -52,10 +53,15 @@ object Translator {
 
     private val BULLET = Regex("""^\s*([•·‣▪◦●○*+]|[-–—]|\(?\d{1,2}[.)]|[a-zA-Z][.)])\s+""")
 
-    private val languageId by lazy {
-        LanguageIdentification.getClient(
-            LanguageIdentificationOptions.Builder().setConfidenceThreshold(0.2f).build()
-        )
+    private var languageId: LanguageIdentifier? = null
+
+    private fun languageId(): LanguageIdentifier = languageId ?: LanguageIdentification.getClient(
+        LanguageIdentificationOptions.Builder().setConfidenceThreshold(0.2f).build()
+    ).also { languageId = it }
+
+    fun release() {
+        languageId?.close()
+        languageId = null
     }
     private val models by lazy { RemoteModelManager.getInstance() }
 
@@ -274,7 +280,7 @@ object Translator {
 
     private suspend fun candidates(text: String): List<Pair<String, Float>> {
         if (text.isBlank()) return emptyList()
-        return languageId.identifyPossibleLanguages(text).await()
+        return languageId().identifyPossibleLanguages(text).await()
             .filter { it.languageTag != "und" }
             .sortedByDescending { it.confidence }
             .map { it.languageTag to it.confidence }

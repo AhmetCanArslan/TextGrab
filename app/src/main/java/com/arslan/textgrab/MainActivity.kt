@@ -141,6 +141,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                 startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
         }
+        OcrEngine.warmUp()
 
         binding.btnSetAssistant.setOnClickListener {
             runCatching {
@@ -213,6 +214,13 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.setupCard.isVisible = needsSetup
         applySegmentShapes(binding.btnEnableCapture, binding.btnSetAssistant)
         refreshTranslationRows()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (ocrJob?.isActive == true || translateJob?.isActive == true) return
+        OcrEngine.release()
+        Translator.release()
     }
 
     /** Gives a segmented list its M3 first/middle/last corner shapes for the rows in view. */

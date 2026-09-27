@@ -7,7 +7,5 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         DynamicColors.applyToActivitiesIfAvailable(this)
-
-        OcrEngine.warmUp()
     }
 }
