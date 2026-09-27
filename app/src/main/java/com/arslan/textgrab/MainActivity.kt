@@ -1,19 +1,14 @@
 package com.arslan.textgrab
 
-import android.Manifest
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.ContentUris
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.View
 import android.widget.TextView
 import androidx.activity.addCallback
@@ -21,7 +16,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -36,30 +30,18 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.arslan.textgrab.databinding.ActivityMainBinding
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.max
 import kotlin.math.min
+import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     companion object {
-        const val EXTRA_LATEST_SCREENSHOT = "com.arslan.textgrab.LATEST_SCREENSHOT"
         const val EXTRA_CAPTURED_SCREEN = "com.arslan.textgrab.CAPTURED_SCREEN"
 
-        /** The one way the tile, the receiver and the accessibility service open the viewer. */
-        fun openIntent(context: Context, extra: String) =
-            Intent(context, MainActivity::class.java).apply {
-                action = Intent.ACTION_MAIN
-                putExtra(extra, true)
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
-                )
-            }
+        private const val SHIZUKU_DOWNLOAD_URL = "https://shizuku.rikka.app/download/"
 
         private const val SPLASH_FADE_MS = 150L
 
@@ -84,14 +66,9 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             if (uri != null) openImage(uri)
         }
 
-    private val requestMediaPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
-
-            if (hasMediaAccess()) loadLatestScreenshot()
-            else Snackbar.make(
-                binding.root, R.string.permission_needed, Snackbar.LENGTH_LONG
-            ).show()
-        }
+    private val shizukuBinder = Shizuku.OnBinderReceivedListener { runOnUiThread { refreshSetup() } }
+    private val shizukuPermission =
+        Shizuku.OnRequestPermissionResultListener { _, _ -> runOnUiThread { refreshSetup() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val capturing = intent?.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false) == true
@@ -135,12 +112,9 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.btnPick.setOnClickListener {
             pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
-        binding.btnScreenshot.setOnClickListener { requestScreenshotOcr() }
-        binding.btnEnableCapture.setOnClickListener {
-            runCatching {
-                startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            }
-        }
+        binding.btnShizuku.setOnClickListener { setUpShizuku() }
+        Shizuku.addBinderReceivedListenerSticky(shizukuBinder)
+        Shizuku.addRequestPermissionResultListener(shizukuPermission)
         OcrEngine.warmUp()
 
         binding.btnSetAssistant.setOnClickListener {
@@ -205,14 +179,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     override fun onResume() {
         super.onResume()
-
-        binding.btnEnableCapture.isVisible =
-            Build.VERSION.SDK_INT >= 31 && !isCaptureServiceEnabled()
-        binding.btnSetAssistant.isVisible = !isAssistantApp()
-        val needsSetup = binding.btnEnableCapture.isVisible || binding.btnSetAssistant.isVisible
-        binding.setupHeader.isVisible = needsSetup
-        binding.setupCard.isVisible = needsSetup
-        applySegmentShapes(binding.btnEnableCapture, binding.btnSetAssistant)
+        refreshSetup()
         refreshTranslationRows()
     }
 
@@ -221,6 +188,39 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         if (ocrJob?.isActive == true || translateJob?.isActive == true) return
         OcrEngine.release()
         Translator.release()
+    }
+
+    private fun refreshSetup() {
+        val status = ScreenCapture.status(this)
+        binding.btnShizuku.isVisible = status != ScreenCapture.Status.READY
+        binding.shizukuSummary.setText(
+            when (status) {
+                ScreenCapture.Status.NOT_INSTALLED -> R.string.shizuku_not_installed
+                ScreenCapture.Status.NOT_RUNNING -> R.string.shizuku_not_running
+                else -> R.string.shizuku_no_permission
+            }
+        )
+        binding.btnSetAssistant.isVisible = !isAssistantApp()
+        val needsSetup = binding.btnShizuku.isVisible || binding.btnSetAssistant.isVisible
+        binding.setupHeader.isVisible = needsSetup
+        binding.setupCard.isVisible = needsSetup
+        applySegmentShapes(binding.btnShizuku, binding.btnSetAssistant)
+    }
+
+    private fun setUpShizuku() {
+        when (ScreenCapture.status(this)) {
+            ScreenCapture.Status.NO_PERMISSION -> ScreenCapture.requestPermission()
+            ScreenCapture.Status.NOT_RUNNING -> ScreenCapture.managerPackage(this)
+                ?.let { packageManager.getLaunchIntentForPackage(it) }
+                ?.let { runCatching { startActivity(it) } }
+                ?: openShizukuDownload()
+            ScreenCapture.Status.NOT_INSTALLED -> openShizukuDownload()
+            ScreenCapture.Status.READY -> refreshSetup()
+        }
+    }
+
+    private fun openShizukuDownload() {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_DOWNLOAD_URL))) }
     }
 
     /** Gives a segmented list its M3 first/middle/last corner shapes for the rows in view. */
@@ -257,20 +257,9 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         return roles.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT)
     }
 
-    private fun isCaptureServiceEnabled(): Boolean {
-        val component = "$packageName/${CaptureAccessibilityService::class.java.name}"
-        val shortComponent = "$packageName/.${CaptureAccessibilityService::class.java.simpleName}"
-        val enabled = android.provider.Settings.Secure.getString(
-            contentResolver,
-            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        return enabled.split(':').any {
-            it.equals(component, ignoreCase = true) || it.equals(shortComponent, ignoreCase = true)
-        }
-    }
-
     override fun onDestroy() {
-
+        Shizuku.removeBinderReceivedListener(shizukuBinder)
+        Shizuku.removeRequestPermissionResultListener(shizukuPermission)
         clearViewerContent()
         super.onDestroy()
     }
@@ -292,9 +281,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
 
         val captureRequested = intent.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false)
-        val latestRequested = intent.getBooleanExtra(EXTRA_LATEST_SCREENSHOT, false)
         intent.removeExtra(EXTRA_CAPTURED_SCREEN)
-        intent.removeExtra(EXTRA_LATEST_SCREENSHOT)
         intent.action = Intent.ACTION_MAIN
         intent.data = null
 
@@ -309,10 +296,6 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                     launchedWithImage = true
                     openBitmap(captured)
                 } else showHome()
-            }
-            latestRequested -> {
-                launchedWithImage = true
-                requestScreenshotOcr()
             }
             else -> {
 
@@ -431,63 +414,6 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         } finally {
             binding.ocrProgress.hide()
         }
-    }
-
-    private fun requestScreenshotOcr() {
-        if (hasMediaAccess()) {
-            loadLatestScreenshot()
-        } else {
-            requestMediaPermission.launch(
-                if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES
-                else Manifest.permission.READ_EXTERNAL_STORAGE
-            )
-        }
-    }
-
-    private fun hasMediaAccess(): Boolean {
-        fun granted(p: String) =
-            ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
-        return when {
-            Build.VERSION.SDK_INT >= 34 ->
-                granted(Manifest.permission.READ_MEDIA_IMAGES) ||
-
-                    granted(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-            Build.VERSION.SDK_INT >= 33 -> granted(Manifest.permission.READ_MEDIA_IMAGES)
-            else -> granted(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-    }
-
-    private fun loadLatestScreenshot() {
-        lifecycleScope.launch {
-            val uri = withContext(Dispatchers.IO) { queryLatestScreenshot() }
-            if (uri != null) openImage(uri)
-            else Snackbar.make(binding.root, R.string.no_screenshot_found, Snackbar.LENGTH_LONG).show()
-        }
-    }
-
-    private fun queryLatestScreenshot(): Uri? {
-        val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(MediaStore.Images.Media._ID)
-        val selection: String
-        val args: Array<String>
-        if (Build.VERSION.SDK_INT >= 29) {
-            selection = "${MediaStore.Images.Media.RELATIVE_PATH} LIKE ?"
-            args = arrayOf("%Screenshots%")
-        } else {
-            @Suppress("DEPRECATION")
-            selection = "${MediaStore.Images.Media.DATA} LIKE ?"
-            args = arrayOf("%/Screenshots/%")
-        }
-        val order = "${MediaStore.Images.Media.DATE_ADDED} DESC"
-
-        fun firstIdOf(sel: String?, selArgs: Array<String>?): Uri? =
-            contentResolver.query(collection, projection, sel, selArgs, order)?.use { c ->
-                if (c.moveToFirst()) {
-                    ContentUris.withAppendedId(collection, c.getLong(0))
-                } else null
-            }
-
-        return firstIdOf(selection, args) ?: firstIdOf(null, null)
     }
 
     private fun showHome() {

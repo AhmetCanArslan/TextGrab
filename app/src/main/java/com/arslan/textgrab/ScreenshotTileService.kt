@@ -1,21 +1,16 @@
 package com.arslan.textgrab
 
 import android.app.PendingIntent
+import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.TileService
 
 class ScreenshotTileService : TileService() {
 
     override fun onClick() {
-        if (Build.VERSION.SDK_INT >= 31) {
-            val capture = CaptureAccessibilityService.instance
-            if (capture != null) {
-
-                capture.captureScreenAndOpen()
-                return
-            }
-        }
-        val intent = MainActivity.openIntent(this, MainActivity.EXTRA_LATEST_SCREENSHOT)
+        val intent = Intent(this, CaptureActivity::class.java)
+            .putExtra(CaptureActivity.EXTRA_DELAY_MS, SHADE_COLLAPSE_MS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (Build.VERSION.SDK_INT >= 34) {
             val pending = PendingIntent.getActivity(
                 this, 0, intent,
@@ -26,5 +21,10 @@ class ScreenshotTileService : TileService() {
             @Suppress("DEPRECATION", "StartActivityAndCollapseDeprecated")
             startActivityAndCollapse(intent)
         }
+    }
+
+    private companion object {
+
+        const val SHADE_COLLAPSE_MS = 500L
     }
 }

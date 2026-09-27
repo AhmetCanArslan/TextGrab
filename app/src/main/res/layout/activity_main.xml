@@ -71,16 +71,6 @@
                     app:icon="@drawable/ic_image"
                     app:iconGravity="textStart"
                     app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnScreenshot"
-                    style="?attr/materialButtonTonalStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/latest_screenshot"
-                    app:icon="@drawable/ic_tile"
-                    app:iconGravity="textStart"
-                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
             </com.google.android.material.button.MaterialButtonGroup>
 
             <TextView
@@ -95,7 +85,7 @@
                 android:orientation="vertical">
 
                 <com.google.android.material.listitem.ListItemCardView
-                    android:id="@+id/btnEnableCapture"
+                    android:id="@+id/btnShizuku"
                     style="@style/ListItemCard">
 
                     <LinearLayout style="@style/ListItemRow">
@@ -108,11 +98,11 @@
 
                             <TextView
                                 style="@style/ListItemLabel"
-                                android:text="@string/enable_instant_capture" />
+                                android:text="@string/shizuku_setup" />
 
                             <TextView
-                                style="@style/ListItemSupportingText"
-                                android:text="@string/enable_instant_capture_summary" />
+                                android:id="@+id/shizukuSummary"
+                                style="@style/ListItemSupportingText" />
                         </LinearLayout>
 
                         <ImageView
