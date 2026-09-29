@@ -85,6 +85,10 @@
     <string name="engine_key_help_openai">Works with any service that speaks OpenAI\'s /chat/completions API. Tap a preset, or type your own endpoint and model name. A server running on this device (Ollama, LM Studio) needs no key.</string>
     <string name="engine_key_help_anthropic">Create a key at console.anthropic.com. A small, fast model is plenty for translation.</string>
     <string name="engine_row_summary_cloud">%1$s · your API key</string>
+    <string name="keep_ready">Keep TextGrab ready</string>
+    <string name="keep_ready_summary">Opens instantly, even after the system closes it in the background</string>
+    <string name="a11y_label">TextGrab keep ready</string>
+    <string name="a11y_description">Only keeps TextGrab running so captures open instantly. It receives no accessibility events, does not read screen content and does not observe your input.</string>
     <string name="shizuku_setup">Set up Shizuku</string>
     <string name="shizuku_not_installed">Install Shizuku so the tile can capture the screen</string>
     <string name="shizuku_not_running">Start Shizuku so the tile can capture the screen</string>

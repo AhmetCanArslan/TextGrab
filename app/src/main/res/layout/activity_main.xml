@@ -112,6 +112,33 @@
                 </com.google.android.material.listitem.ListItemCardView>
 
                 <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/btnKeepReady"
+                    style="@style/ListItemCard">
+
+                    <LinearLayout style="@style/ListItemRow">
+
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_bolt" />
+
+                        <LinearLayout style="@style/ListItemTextGroup">
+
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/keep_ready" />
+
+                            <TextView
+                                style="@style/ListItemSupportingText"
+                                android:text="@string/keep_ready_summary" />
+                        </LinearLayout>
+
+                        <ImageView
+                            style="@style/ListItemTrailingIcon"
+                            android:src="@drawable/ic_chevron_right" />
+                    </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
+
+                <com.google.android.material.listitem.ListItemCardView
                     android:id="@+id/btnSetAssistant"
                     style="@style/ListItemCard">
 

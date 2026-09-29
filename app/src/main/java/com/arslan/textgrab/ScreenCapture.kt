@@ -102,7 +102,6 @@ object ScreenCapture {
         val app = context.applicationContext
         job?.cancel()
         return scope.launch {
-            OcrEngine.warmUp()
             val screen = connect(app)
             if (screen == null) {
                 Toast.makeText(app, R.string.shizuku_not_ready, Toast.LENGTH_LONG).show()
@@ -172,7 +171,7 @@ object ScreenCapture {
 
     private fun viewerCommand(context: Context): String =
         "am start -n ${context.packageName}/${MainActivity::class.java.name} " +
-            "--ez ${MainActivity.EXTRA_CAPTURED_SCREEN} true --activity-clear-top --activity-single-top"
+            "--ez ${MainActivity.EXTRA_CAPTURED_SCREEN} true --activity-clear-top --activity-single-top --activity-no-animation"
 
     private fun args(context: Context) = Shizuku.UserServiceArgs(
         ComponentName(context.packageName, ScreenService::class.java.name)

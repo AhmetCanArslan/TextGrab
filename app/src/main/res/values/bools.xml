@@ -2,4 +2,9 @@
 <resources>
 
     <bool name="light_system_bars">true</bool>
+
+    <!-- On API 31+ this only skips the splash for launches that don't come from the launcher or
+         system UI, so capture launches open straight into the preview. Below 31 the compat
+         splash is the starting window itself, so it must stay. -->
+    <bool name="disable_starting_window">false</bool>
 </resources>

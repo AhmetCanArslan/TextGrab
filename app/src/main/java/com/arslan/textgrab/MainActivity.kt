@@ -117,6 +117,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         Shizuku.addRequestPermissionResultListener(shizukuPermission)
         OcrEngine.warmUp()
 
+        binding.btnKeepReady.setOnClickListener {
+            runCatching { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        }
+
         binding.btnSetAssistant.setOnClickListener {
             runCatching {
                 startActivity(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
@@ -200,11 +204,13 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                 else -> R.string.shizuku_no_permission
             }
         )
+        binding.btnKeepReady.isVisible = !isKeepAliveEnabled()
         binding.btnSetAssistant.isVisible = !isAssistantApp()
-        val needsSetup = binding.btnShizuku.isVisible || binding.btnSetAssistant.isVisible
+        val needsSetup = binding.btnShizuku.isVisible || binding.btnKeepReady.isVisible ||
+            binding.btnSetAssistant.isVisible
         binding.setupHeader.isVisible = needsSetup
         binding.setupCard.isVisible = needsSetup
-        applySegmentShapes(binding.btnShizuku, binding.btnSetAssistant)
+        applySegmentShapes(binding.btnShizuku, binding.btnKeepReady, binding.btnSetAssistant)
     }
 
     private fun setUpShizuku() {
@@ -249,6 +255,15 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             val count = runCatching { Translator.downloadedLanguages().size }.getOrNull() ?: return@launch
             binding.textLanguagePacks.text = getString(R.string.language_packs_summary, count)
         }
+    }
+
+    private fun isKeepAliveEnabled(): Boolean {
+        val enabled = android.provider.Settings.Secure.getString(
+            contentResolver,
+            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        val component = android.content.ComponentName(this, KeepAliveService::class.java)
+        return enabled.split(':').any { android.content.ComponentName.unflattenFromString(it) == component }
     }
 
     private fun isAssistantApp(): Boolean {

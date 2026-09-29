@@ -7,6 +7,7 @@
         <item name="windowSplashScreenBackground">@color/window_background</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
+        <item name="android:windowDisablePreview">@bool/disable_starting_window</item>
         <item name="postSplashScreenTheme">@style/Theme.TextGrab</item>
     </style>
 

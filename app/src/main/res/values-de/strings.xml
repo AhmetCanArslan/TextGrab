@@ -50,6 +50,10 @@
     <string name="language_delete">Löschen</string>
     <string name="language_delete_confirm">Sprachpaket %1$s löschen?</string>
     <string name="language_download_failed">Download fehlgeschlagen. %1$s</string>
+    <string name="keep_ready">TextGrab bereithalten</string>
+    <string name="keep_ready_summary">Öffnet sofort, auch nachdem das System es im Hintergrund beendet hat</string>
+    <string name="a11y_label">TextGrab bereithalten</string>
+    <string name="a11y_description">Hält TextGrab nur aktiv, damit Aufnahmen sofort öffnen. Es empfängt keine Bedienungshilfe-Ereignisse, liest keine Bildschirminhalte und beobachtet keine Eingaben.</string>
     <string name="shizuku_setup">Shizuku einrichten</string>
     <string name="shizuku_not_installed">Installiere Shizuku, damit die Kachel den Bildschirm aufnehmen kann</string>
     <string name="shizuku_not_running">Starte Shizuku, damit die Kachel den Bildschirm aufnehmen kann</string>
