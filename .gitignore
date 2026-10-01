@@ -11,3 +11,5 @@ local.properties
 
 # Signing secrets: keep the keystore and its passwords out of the repo
 keystore/
+app/release/
+app/.DS_Store
