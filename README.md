@@ -1,109 +1,155 @@
 # TextGrab
-Select and copy text from any image on Android while respecting your privacy. Works like iOS Live Text or the text selection on Pixel phones, but fully local and without Google Play services.
 
-## What's different in this fork
+**TextGrab on steroids.** Select, copy and translate the text of anything on
+your Android screen: one gesture captures the screen, and a moment later every
+word on it is selectable. Like iOS Live Text or Circle to Search, but the
+recognition runs on your device and needs no Google Play services.
 
-This is a fork of [notune/TextGrab](https://github.com/notune/TextGrab)
-with its own package name, `com.arslan.textgrab`, so it installs next to
-the original rather than updating it. 
+This is a fork of [notune/TextGrab](https://github.com/notune/TextGrab) that
+has grown well past the original: instant screen capture through Shizuku, an
+assistant gesture, in-place translation with a choice of engines, Chinese,
+Japanese and Korean recognition, and a redesigned Material 3 interface. It
+uses its own package name, `com.arslan.textgrab`, so it installs next to the
+original instead of replacing it.
 
-Changes:
+| Capture any screen | Select like native text | Translate in place |
+|---|---|---|
+| ![Captured screen shown as an inset preview](screenshots/capture.png) | ![Two lines selected with handles and a copy toolbar](screenshots/select.png) | ![The same screen translated from German to English](screenshots/translate.png) |
 
-- **Assistant gesture:** long-press home / the navigation handle once
-  TextGrab is the default digital assistant. The home screen has a button
-  that opens that setting.
-- **adb trigger:** start a capture from a computer. The home screen shows the
-  command and copies it on tap. The receiver requires the `DUMP` permission,
-  so only adb (not other apps) can send these:
+## What it adds over the original
 
-  ```sh
-  # Capture the current screen (instant capture), or open the latest screenshot if it's off
-  adb shell am broadcast -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
-  # Always open the latest screenshot
-  adb shell am broadcast -a com.arslan.textgrab.action.LATEST_SCREENSHOT -p com.arslan.textgrab
-  ```
-- **Capture preview:** instant captures open slightly shrunk, below the
-  toolbar, with rounded corners over a blurred copy of the screen, so text
-  at the edges is easy to reach.
-- **More native text selection:** dragging follows lines instead of jumping
-  between words, handles keep their grab offset, and copied text no longer
-  contains stray empty lines.
-- **Better recognition:** icons and stray symbols are filtered out, lines
-  are ordered as they appear on screen, and Chinese, Japanese and Korean
+- **Instant capture.** The quick settings tile, the assistant gesture and an
+  adb command all grab the current screen directly. No screenshot is saved to
+  your gallery first.
+- **Assistant gesture.** Long-press home or the navigation handle to grab
+  text from whatever is on screen.
+- **Capture preview.** A capture opens slightly shrunk with rounded corners
+  over a blurred copy of the screen, so text at the very edges is easy to
+  reach.
+- **Native-feeling selection.** Dragging follows lines instead of jumping
+  between words, handles keep their grab offset, and copied text has no stray
+  empty lines.
+- **Translation in place.** Every recognized line is replaced by its
+  translation right on the image, and the translated text can be selected and
+  copied too.
+- **Five translation engines.** On-device ML Kit by default, or DeepL, Google
+  Cloud Translation, any OpenAI-compatible LLM endpoint, or Claude, each with
+  your own API key.
+- **Better recognition.** Icons and stray symbols are filtered out, lines are
+  ordered the way they appear on screen, and Chinese, Japanese and Korean
   models are bundled.
+- **Always ready.** An optional keep-alive service stops Android from killing
+  the app in the background, so captures open without a cold start.
 
-The download and Obtainium badges and the signing certificate below still
-refer to the upstream project.
+## Setup
+
+The home screen lists whatever is still missing and hides each row once it is
+done.
+
+| Home screen | Translation engines | Language packs |
+|---|---|---|
+| ![Home screen with setup and translation settings](screenshots/home.png) | ![Translation engine picker](screenshots/engines.png) | ![Language pack manager](screenshots/packs.png) |
+
+1. **Set up Shizuku.** TextGrab captures the screen through
+   [Shizuku](https://shizuku.rikka.app/). Install it, start it (wireless
+   debugging, adb or root), then tap **Set up Shizuku** in TextGrab and allow
+   access. Screen capture does not work without it; opening images does.
+2. **Add the tile.** Open quick settings, tap the edit (pencil) button and
+   drag the **OCR screenshot** tile into your tiles.
+3. **Keep TextGrab ready** (optional). Enable *TextGrab keep ready* under
+   accessibility settings. The service only keeps the process alive: it
+   receives no accessibility events and cannot read window content.
+4. **Set as assistant app** (optional). Pick TextGrab under *Settings → Apps →
+   Default apps → Digital assistant app* to capture with a long-press on home
+   or the navigation handle. On devices with Circle to Search, turn that off
+   first.
 
 ## How to use
 
-**Main workflow, from anything on your screen to copied text in seconds:**
+**Grab text from the screen**
 
-1. Swipe down and tap the **OCR screenshot** tile
-2. Tap or drag over the text, then copy
+1. Tap the **OCR screenshot** tile, or long-press home.
+2. Tap a word, or long-press and drag across the text.
+3. Use the floating toolbar to copy, select all, share or search the web.
 
-One-time setup: open quick settings, tap the edit (pencil) button and drag
-the **OCR screenshot** tile into your tiles. Then enable instant capture via
-the button on the app's home screen, so the tile can take the screenshot by
-itself (Android 12+, uses a screenshot-only accessibility service that reads
-no screen content). Without instant capture, take a screenshot first and the
-tile opens it.
+The top bar acts on the whole screen: select all, view as plain text,
+translate, copy all, share all.
 
-**Second workflow, for existing images:**
+**Grab text from an image**
 
-Share any image from any app (gallery, browser, messenger) to **TextGrab**
-and the text is selectable. Opening image files with TextGrab from a file
-manager works too, as does picking an image from the app's home screen.
+Share an image from any app to **TextGrab**, open an image file with it from a
+file manager, or tap **Choose image** on the home screen. This needs neither
+Shizuku nor any permission.
 
-**Long-press home / navigation handle:**
+| Full text view |
+|---|
+| <img src="screenshots/text.png" alt="Recognized text shown in a bottom sheet" width="270"> |
 
-Set TextGrab under *Settings → Apps → Default apps → Digital assistant app*.
-Long-pressing home (or the gesture handle) then captures the screen, just
-like the tile. Needs instant capture enabled; without it, the latest
-screenshot is opened. On devices with Circle to Search, turn that off first.
+**Trigger from ADB**
 
-## Screenshots
+```sh
+adb shell am broadcast -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
+```
 
-| Tap a word | Long-press and drag | Full text view |
-|---|---|---|
-| ![Select a word](screenshots/select_word.png) | ![Sweep selection](screenshots/sweep_selection.png) | ![Text view](screenshots/text_view.png) |
-
-## How it works
-
-The app bundles Google's ML Kit **on-device** text recognizer, the same class
-of neural model that powers Pixel Live Text. The model is packaged inside the
-APK, so recognition:
-
-- runs entirely on the device. Internet is only used to download
-  translation models (see below); recognized text never leaves the device.
-- needs **no Google Play services** and works on GrapheneOS out of the box.
-- is fast: typically well under a second per screenshot on real hardware.
+The home screen shows this command and copies it on tap. The receiver requires
+the `DUMP` permission, so adb can send the broadcast but other apps cannot.
 
 ## Translation
 
-Tap the translate button in the toolbar and every recognized line on the
-image is replaced in place by its translation, like the Circle to Search
-translator. Tap it again to show the original; long-press it to pick the
-target language. Selecting and copying works on the translated text. The
-source language is detected automatically with ML Kit's bundled language
-identification model; the target language is remembered. Translation uses ML Kit's **on-device** translator: each
-language model (~30 MB) is downloaded once from Google's servers the first
-time it is needed, after which translation works offline. This is the only
-reason the app requests the internet permission.
+Tap the translate button in the top bar and every recognized line is replaced
+in place by its translation. Tap it again to show the original; long-press it
+to pick the target language. The source language is detected automatically
+with ML Kit's bundled language identification model, so a screen
+that mixes languages still translates. The target language is remembered.
+
+Choose the engine under **Translation engine** on the home screen:
+
+| Engine | Runs | Notes |
+|---|---|---|
+| On-device (ML Kit) | On your device | The default. Free and private. Translates sentence by sentence. |
+| DeepL | DeepL's API | Natural wording, strong on European languages. Free keys (ending in `:fx`) are detected automatically. |
+| Google Cloud Translation | Google's API | The widest language coverage. |
+| LLM (OpenAI-compatible) | Any `/chat/completions` endpoint | Translates the whole screen at once, so wording stays consistent. Presets for OpenAI, Gemini, DeepSeek, OpenRouter, Groq, Mistral, Together, Ollama and LM Studio, or type your own endpoint and model. |
+| Claude (Anthropic) | Anthropic's API | Translates the whole screen at once; good with interface wording and short labels. |
+
+Each cloud engine has a **Test** button that checks your key before you save
+it. A server on the device itself (Ollama, LM Studio on `localhost`) needs no
+key.
+
+For the on-device engine, each language pack is about 30 MB. It is downloaded
+from Google's servers the first time it is needed and works offline after
+that. **Language packs** on the home screen lets you download packs ahead of
+time and delete the ones you no longer want.
+
+## Privacy
+
+- Text recognition always runs on the device. The recognition models are
+  packaged inside the APK and need no Google Play services, so the app works
+  on GrapheneOS out of the box.
+- With the on-device translation engine, the internet is used only to
+  download language packs. Recognized text never leaves the device.
+- With a cloud translation engine, the recognized text of the screen you
+  translate is sent to the service you configured. Nothing is sent until you
+  tap translate. API keys are stored in the app's private storage.
+- Captured screens are held in memory only and are never written to storage.
+- The app requests no storage, photo or camera permission.
 
 ## Supported languages
 
-All Latin-script languages, including:
+**Recognition:** all Latin-script languages, including English, German,
+French, Spanish, Italian, Portuguese, Dutch, Polish, Czech, Danish, Swedish,
+Norwegian, Finnish, Hungarian, Romanian, Turkish, Croatian, Slovak, Slovenian,
+Estonian, Latvian, Lithuanian, Albanian, Catalan, Basque, Galician, Icelandic,
+Irish, Maltese, Swahili, Tagalog, Vietnamese (partial, some diacritics may be
+missed) and more, plus digits and common punctuation.
 
-English, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Czech,
-Danish, Swedish, Norwegian, Finnish, Hungarian, Romanian, Turkish, Croatian,
-Slovak, Slovenian, Estonian, Latvian, Lithuanian, Albanian, Catalan, Basque,
-Galician, Icelandic, Irish, Maltese, Swahili, Tagalog, Vietnamese (partial,
-some diacritics may be missed) and more, plus digits and common punctuation.
+Chinese, Japanese and Korean are bundled as well, and each of them also reads
+Latin text. They only run when the Latin recognizer's result looks
+unreliable, so Latin text stays fast. Arabic, Cyrillic and Devanagari are not
+recognized yet.
 
-Chinese, Japanese and Korean (each also reads Latin text) are bundled too.
-They only run when the Latin recognizer's result looks unreliable, so Latin
-text stays fast. Arabic and Devanagari are not supported yet.
+**Translation:** the on-device engine covers the roughly 60 languages ML Kit
+offers. Cloud engines cover whatever the service supports.
 
 ## Building
 
@@ -123,48 +169,24 @@ keyAlias=...
 keyPassword=...
 ```
 
-Without that file the release build is unsigned. Keep your keystore safe:
-updates must be signed with the same key.
-
-## Installing with Obtainium
-
-Tap the Obtainium badge above on your phone (or add
-`https://github.com/notune/TextGrab` as an app source in
-[Obtainium](https://github.com/ImranR98/Obtainium)) to install TextGrab and
-get updates straight from this repo's releases.
-
-## Verifying the APK
-
-Release APKs are signed with this certificate (package + SHA-256, ready to
-paste into [AppVerifier](https://github.com/soupslurpr/AppVerifier)):
-
-```
-com.arslan.textgrab
-AB:C4:BB:AE:C5:6F:D3:DB:AB:AC:C8:62:D0:B4:5D:29:3B:53:CC:40:BF:67:D7:25:3B:3E:1B:7D:2D:48:0C:31
-```
-
-On a computer you can check a downloaded APK with:
-
-```sh
-apksigner verify --print-certs TextGrab.apk
-```
-
-After the first install, Android itself rejects any update that is not
-signed with the same key.
+Without that file the release build is unsigned
+(`app-release-unsigned.apk`). Keep your keystore safe: updates must be signed
+with the same key.
 
 ## Notes
 
 - `minSdk 26` (Android 8.0), `targetSdk 36`.
-- The APK is ~43 MB; ~30 MB of that is the bundled recognition model.
-- Photo permission is only requested for the "latest screenshot" feature.
-  Images opened via share or the picker need no permission at all.
+- The APK is about 110 MB. Most of that is the four bundled recognition
+  models (Latin, Chinese, Japanese, Korean).
+- Models are loaded on demand and released when the app leaves the screen, so
+  it holds little memory while idle.
 
 ## License
 
 The app source code is licensed under the [MIT License](LICENSE).
 
-The bundled ML Kit text recognition SDK and its model are proprietary Google
-software, used and redistributed under the
+The bundled ML Kit SDKs and their models are proprietary Google software,
+used and redistributed under the
 [ML Kit Terms of Service](https://developers.google.com/ml-kit/terms). They
 are pulled from Google's Maven repository at build time and are not part of
 this repository.
