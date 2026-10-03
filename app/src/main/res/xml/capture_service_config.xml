@@ -3,4 +3,5 @@
     android:description="@string/a11y_description"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canRetrieveWindowContent="false"
+    android:canTakeScreenshot="true"
     android:isAccessibilityTool="false" />

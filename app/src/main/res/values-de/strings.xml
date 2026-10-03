@@ -50,13 +50,10 @@
     <string name="language_delete">Löschen</string>
     <string name="language_delete_confirm">Sprachpaket %1$s löschen?</string>
     <string name="language_download_failed">Download fehlgeschlagen. %1$s</string>
-    <string name="keep_ready">TextGrab bereithalten</string>
-    <string name="keep_ready_summary">Öffnet sofort, auch nachdem das System es im Hintergrund beendet hat</string>
-    <string name="a11y_label">TextGrab bereithalten</string>
-    <string name="a11y_description">Hält TextGrab nur aktiv, damit Aufnahmen sofort öffnen. Es empfängt keine Bedienungshilfe-Ereignisse, liest keine Bildschirminhalte und beobachtet keine Eingaben.</string>
-    <string name="shizuku_setup">Shizuku einrichten</string>
-    <string name="shizuku_not_installed">Installiere Shizuku, damit die Kachel den Bildschirm aufnehmen kann</string>
-    <string name="shizuku_not_running">Starte Shizuku, damit die Kachel den Bildschirm aufnehmen kann</string>
-    <string name="shizuku_no_permission">Erlaube TextGrab in Shizuku, den Bildschirm aufzunehmen</string>
-    <string name="shizuku_not_ready">Shizuku ist nicht bereit. Öffne TextGrab, um es einzurichten</string>
+    <string name="a11y_setup">Bildschirmaufnahme aktivieren</string>
+    <string name="a11y_setup_summary">Aktiviere TextGrab in den Bedienungshilfen, damit die Kachel den Bildschirm aufnehmen kann</string>
+    <string name="a11y_label">TextGrab Bildschirmaufnahme</string>
+    <string name="a11y_description">Nimmt einen Screenshot auf, wenn du die Kachel antippst oder die Assistenz-Geste nutzt, und hält TextGrab aktiv, damit Aufnahmen sofort öffnen. Es empfängt keine Bedienungshilfe-Ereignisse, liest keine Fensterinhalte und beobachtet keine Eingaben.</string>
+    <string name="a11y_not_ready">Bildschirmaufnahme ist aus. Öffne TextGrab, um sie zu aktivieren</string>
+    <string name="capture_unsupported">Bildschirmaufnahme erfordert Android 11 oder neuer</string>
 </resources>

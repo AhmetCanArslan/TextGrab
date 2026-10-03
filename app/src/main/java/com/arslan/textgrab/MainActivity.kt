@@ -34,14 +34,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
-import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     companion object {
         const val EXTRA_CAPTURED_SCREEN = "com.arslan.textgrab.CAPTURED_SCREEN"
-
-        private const val SHIZUKU_DOWNLOAD_URL = "https://shizuku.rikka.app/download/"
 
         private const val SPLASH_FADE_MS = 150L
 
@@ -65,10 +62,6 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) openImage(uri)
         }
-
-    private val shizukuBinder = Shizuku.OnBinderReceivedListener { runOnUiThread { refreshSetup() } }
-    private val shizukuPermission =
-        Shizuku.OnRequestPermissionResultListener { _, _ -> runOnUiThread { refreshSetup() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val capturing = intent?.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false) == true
@@ -112,12 +105,9 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.btnPick.setOnClickListener {
             pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
-        binding.btnShizuku.setOnClickListener { setUpShizuku() }
-        Shizuku.addBinderReceivedListenerSticky(shizukuBinder)
-        Shizuku.addRequestPermissionResultListener(shizukuPermission)
         OcrEngine.warmUp()
 
-        binding.btnKeepReady.setOnClickListener {
+        binding.btnAccessibility.setOnClickListener {
             runCatching { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         }
 
@@ -195,38 +185,12 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun refreshSetup() {
-        val status = ScreenCapture.status(this)
-        binding.btnShizuku.isVisible = status != ScreenCapture.Status.READY
-        binding.shizukuSummary.setText(
-            when (status) {
-                ScreenCapture.Status.NOT_INSTALLED -> R.string.shizuku_not_installed
-                ScreenCapture.Status.NOT_RUNNING -> R.string.shizuku_not_running
-                else -> R.string.shizuku_no_permission
-            }
-        )
-        binding.btnKeepReady.isVisible = !isKeepAliveEnabled()
+        binding.btnAccessibility.isVisible = ScreenCapture.supported && !ScreenCapture.isEnabled(this)
         binding.btnSetAssistant.isVisible = !isAssistantApp()
-        val needsSetup = binding.btnShizuku.isVisible || binding.btnKeepReady.isVisible ||
-            binding.btnSetAssistant.isVisible
+        val needsSetup = binding.btnAccessibility.isVisible || binding.btnSetAssistant.isVisible
         binding.setupHeader.isVisible = needsSetup
         binding.setupCard.isVisible = needsSetup
-        applySegmentShapes(binding.btnShizuku, binding.btnKeepReady, binding.btnSetAssistant)
-    }
-
-    private fun setUpShizuku() {
-        when (ScreenCapture.status(this)) {
-            ScreenCapture.Status.NO_PERMISSION -> ScreenCapture.requestPermission()
-            ScreenCapture.Status.NOT_RUNNING -> ScreenCapture.managerPackage(this)
-                ?.let { packageManager.getLaunchIntentForPackage(it) }
-                ?.let { runCatching { startActivity(it) } }
-                ?: openShizukuDownload()
-            ScreenCapture.Status.NOT_INSTALLED -> openShizukuDownload()
-            ScreenCapture.Status.READY -> refreshSetup()
-        }
-    }
-
-    private fun openShizukuDownload() {
-        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SHIZUKU_DOWNLOAD_URL))) }
+        applySegmentShapes(binding.btnAccessibility, binding.btnSetAssistant)
     }
 
     /** Gives a segmented list its M3 first/middle/last corner shapes for the rows in view. */
@@ -257,15 +221,6 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
     }
 
-    private fun isKeepAliveEnabled(): Boolean {
-        val enabled = android.provider.Settings.Secure.getString(
-            contentResolver,
-            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        val component = android.content.ComponentName(this, KeepAliveService::class.java)
-        return enabled.split(':').any { android.content.ComponentName.unflattenFromString(it) == component }
-    }
-
     private fun isAssistantApp(): Boolean {
         if (Build.VERSION.SDK_INT < 29) return false
         val roles = getSystemService(android.app.role.RoleManager::class.java) ?: return false
@@ -273,8 +228,6 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     override fun onDestroy() {
-        Shizuku.removeBinderReceivedListener(shizukuBinder)
-        Shizuku.removeRequestPermissionResultListener(shizukuPermission)
         clearViewerContent()
         super.onDestroy()
     }

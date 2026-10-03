@@ -85,7 +85,7 @@
                 android:orientation="vertical">
 
                 <com.google.android.material.listitem.ListItemCardView
-                    android:id="@+id/btnShizuku"
+                    android:id="@+id/btnAccessibility"
                     style="@style/ListItemCard">
 
                     <LinearLayout style="@style/ListItemRow">
@@ -98,38 +98,11 @@
 
                             <TextView
                                 style="@style/ListItemLabel"
-                                android:text="@string/shizuku_setup" />
-
-                            <TextView
-                                android:id="@+id/shizukuSummary"
-                                style="@style/ListItemSupportingText" />
-                        </LinearLayout>
-
-                        <ImageView
-                            style="@style/ListItemTrailingIcon"
-                            android:src="@drawable/ic_chevron_right" />
-                    </LinearLayout>
-                </com.google.android.material.listitem.ListItemCardView>
-
-                <com.google.android.material.listitem.ListItemCardView
-                    android:id="@+id/btnKeepReady"
-                    style="@style/ListItemCard">
-
-                    <LinearLayout style="@style/ListItemRow">
-
-                        <ImageView
-                            style="@style/ListItemLeadingIcon"
-                            android:src="@drawable/ic_bolt" />
-
-                        <LinearLayout style="@style/ListItemTextGroup">
-
-                            <TextView
-                                style="@style/ListItemLabel"
-                                android:text="@string/keep_ready" />
+                                android:text="@string/a11y_setup" />
 
                             <TextView
                                 style="@style/ListItemSupportingText"
-                                android:text="@string/keep_ready_summary" />
+                                android:text="@string/a11y_setup_summary" />
                         </LinearLayout>
 
                         <ImageView

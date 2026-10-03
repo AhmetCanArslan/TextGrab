@@ -1,9 +1,3 @@
 -keep class com.google.mlkit.** { *; }
 -keep class com.google.android.gms.internal.mlkit_vision_text_common.** { *; }
 -dontwarn com.google.android.gms.**
--keep class com.arslan.textgrab.ScreenService { *; }
--keep interface com.arslan.textgrab.IScreenService { *; }
--keep class com.arslan.textgrab.IScreenService$* { *; }
--keep class rikka.shizuku.** { *; }
--keep class moe.shizuku.server.** { *; }
--keep class moe.shizuku.api.** { *; }

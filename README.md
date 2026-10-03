@@ -6,8 +6,8 @@ word on it is selectable. Like iOS Live Text or Circle to Search, but the
 recognition runs on your device and needs no Google Play services.
 
 This is a fork of [notune/TextGrab](https://github.com/notune/TextGrab) that
-has grown well past the original: instant screen capture through Shizuku, an
-assistant gesture, in-place translation with a choice of engines, Chinese,
+has grown well past the original: instant screen capture, an assistant
+gesture, in-place translation with a choice of engines, Chinese,
 Japanese and Korean recognition, and a redesigned Material 3 interface. It
 uses its own package name, `com.arslan.textgrab`, so it installs next to the
 original instead of replacing it.
@@ -38,8 +38,9 @@ original instead of replacing it.
 - **Better recognition.** Icons and stray symbols are filtered out, lines are
   ordered the way they appear on screen, and Chinese, Japanese and Korean
   models are bundled.
-- **Always ready.** An optional keep-alive service stops Android from killing
-  the app in the background, so captures open without a cold start.
+- **Always ready.** The accessibility service that takes the screenshots also
+  stops Android from killing the app in the background, so captures open
+  without a cold start.
 
 ## Setup
 
@@ -50,16 +51,15 @@ done.
 |---|---|---|
 | ![Home screen with setup and translation settings](screenshots/home.png) | ![Translation engine picker](screenshots/engines.png) | ![Language pack manager](screenshots/packs.png) |
 
-1. **Set up Shizuku.** TextGrab captures the screen through
-   [Shizuku](https://shizuku.rikka.app/). Install it, start it (wireless
-   debugging, adb or root), then tap **Set up Shizuku** in TextGrab and allow
-   access. Screen capture does not work without it; opening images does.
+1. **Turn on screen capture.** Tap **Turn on screen capture** in TextGrab and
+   enable *TextGrab screen capture* under accessibility settings. TextGrab
+   takes its screenshots through this service (Android 11 or newer), and it
+   keeps the app ready in the background. It receives no accessibility events
+   and cannot read window content. Screen capture does not work without it;
+   opening images does.
 2. **Add the tile.** Open quick settings, tap the edit (pencil) button and
    drag the **OCR screenshot** tile into your tiles.
-3. **Keep TextGrab ready** (optional). Enable *TextGrab keep ready* under
-   accessibility settings. The service only keeps the process alive: it
-   receives no accessibility events and cannot read window content.
-4. **Set as assistant app** (optional). Pick TextGrab under *Settings → Apps →
+3. **Set as assistant app** (optional). Pick TextGrab under *Settings → Apps →
    Default apps → Digital assistant app* to capture with a long-press on home
    or the navigation handle. On devices with Circle to Search, turn that off
    first.
@@ -78,8 +78,8 @@ translate, copy all, share all.
 **Grab text from an image**
 
 Share an image from any app to **TextGrab**, open an image file with it from a
-file manager, or tap **Choose image** on the home screen. This needs neither
-Shizuku nor any permission.
+file manager, or tap **Choose image** on the home screen. This needs no
+setup and no permission.
 
 | Full text view |
 |---|
