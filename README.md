@@ -41,6 +41,12 @@ screen.
 **From an image:** share an image to **TextGrab** from any app, or tap
 **Choose image** on the home screen. This needs no setup and no permission.
 
+**From the camera:** tap **Camera** on the home screen, or
+long-press the app icon and pick **Camera**. Point the
+viewfinder at the text (pinch to zoom, tap to focus), press the shutter, and
+the photo opens like any other image: select, copy or translate. The camera
+permission is requested the first time; photos are not kept.
+
 **Translate:** tap the translate button in the top bar and every line is
 replaced in place by its translation. Tap again to show the original;
 long-press to pick the target language. The source language is detected
