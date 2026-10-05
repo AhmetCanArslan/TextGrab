@@ -71,6 +71,16 @@
                     app:icon="@drawable/ic_image"
                     app:iconGravity="textStart"
                     app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCamera"
+                    style="?attr/materialButtonTonalStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/camera"
+                    app:icon="@drawable/ic_camera"
+                    app:iconGravity="textStart"
+                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
             </com.google.android.material.button.MaterialButtonGroup>
 
             <TextView

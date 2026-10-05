@@ -6,6 +6,12 @@
     <string name="home_subtitle">Erkennung und Übersetzung laufen lokal auf dem Gerät — ohne Google-Dienste. Internet wird nur zum Laden der Sprachpakete genutzt.</string>
     <string name="home_hint">Teile ein beliebiges Bild mit TextGrab oder füge die Kachel „OCR Screenshot" zu den Schnelleinstellungen hinzu: Kachel antippen, Text markieren.</string>
     <string name="pick_image">Bild auswählen</string>
+    <string name="camera">Kamera</string>
+    <string name="shortcut_camera_long">Text mit Kamera erfassen</string>
+    <string name="camera_shutter">Foto aufnehmen</string>
+    <string name="camera_torch">Taschenlampe</string>
+    <string name="camera_permission_denied">Für die Aufnahme wird Kamerazugriff benötigt</string>
+    <string name="camera_failed">Foto konnte nicht aufgenommen werden</string>
 
     <string name="back">Zurück</string>
     <string name="copy">Kopieren</string>

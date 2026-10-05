@@ -39,6 +39,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     companion object {
         const val EXTRA_CAPTURED_SCREEN = "com.arslan.textgrab.CAPTURED_SCREEN"
+        const val ACTION_CAMERA = "com.arslan.textgrab.action.CAMERA"
+
+        private const val STATE_LAUNCHED_FOR_CAMERA = "launched_for_camera"
+        private const val STATE_CAMERA_OPEN = "camera_open"
 
         private const val SPLASH_FADE_MS = 150L
 
@@ -61,6 +65,23 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) openImage(uri)
+        }
+
+    private val cameraFile by lazy { CameraActivity.photoFile(this) }
+
+    /** Started from the camera shortcut: the home screen is never part of this session. */
+    private var launchedForCamera = false
+    private var cameraOpen = false
+    private var viewingCameraPhoto = false
+
+    private val takePhoto =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            cameraOpen = false
+            when {
+                result.resultCode == RESULT_OK -> openImage(Uri.fromFile(cameraFile), fromCamera = true)
+                launchedForCamera -> finish()
+                else -> showHome()
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,6 +126,9 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.btnPick.setOnClickListener {
             pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
+        binding.btnCamera.isVisible =
+            packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY)
+        binding.btnCamera.setOnClickListener { launchCamera() }
         OcrEngine.warmUp()
 
         binding.btnAccessibility.setOnClickListener {
@@ -166,9 +190,21 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             }
         }
 
+        if (savedInstanceState != null) {
+            // A restored activity gets the shortcut intent again; the camera was already opened for it.
+            if (intent.action == ACTION_CAMERA) intent.action = Intent.ACTION_MAIN
+            cameraOpen = savedInstanceState.getBoolean(STATE_CAMERA_OPEN)
+            launchedForCamera = cameraOpen && savedInstanceState.getBoolean(STATE_LAUNCHED_FOR_CAMERA)
+        }
         handleIntent(intent)
 
         binding.root.post { contentReady = true }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_LAUNCHED_FOR_CAMERA, launchedForCamera)
+        outState.putBoolean(STATE_CAMERA_OPEN, cameraOpen)
     }
 
     override fun onResume() {
@@ -248,6 +284,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             else -> null
         }
 
+        val cameraRequested = intent.action == ACTION_CAMERA
         val captureRequested = intent.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false)
         intent.removeExtra(EXTRA_CAPTURED_SCREEN)
         intent.action = Intent.ACTION_MAIN
@@ -268,18 +305,45 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             else -> {
 
                 CaptureHolder.take()
-                showHome()
+                when {
+                    cameraRequested -> {
+                        launchedForCamera = true
+                        launchCamera()
+                    }
+                    cameraOpen -> showCameraPending()
+                    else -> showHome()
+                }
             }
         }
     }
 
-    private fun openImage(uri: Uri) {
+    private fun launchCamera() {
+        cameraOpen = true
+        showCameraPending()
+        takePhoto.launch(Intent(this, CameraActivity::class.java))
+    }
+
+    /** Nothing shows behind the camera, so neither home nor a stale photo flashes when it closes. */
+    private fun showCameraPending() {
+        clearViewerContent()
+        viewingCameraPhoto = false
+        binding.homeGroup.isVisible = false
+        binding.viewerGroup.isVisible = false
+        binding.progressGroup.isVisible = false
+    }
+
+    private fun openImage(uri: Uri, fromCamera: Boolean = false) {
+        viewingCameraPhoto = fromCamera
         binding.ocrView.capturePreview = false
 
         showViewer(loading = true)
         startOcr {
             try {
-                val bitmap = ImageLoader.load(this@MainActivity, uri)
+                val bitmap = try {
+                    ImageLoader.load(this@MainActivity, uri)
+                } finally {
+                    if (fromCamera) cameraFile.delete()
+                }
                 processBitmap(bitmap)
             } catch (e: CancellationException) {
                 throw e
@@ -296,6 +360,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun openBitmap(bitmap: Bitmap) {
+        viewingCameraPhoto = false
         binding.ocrView.capturePreview = true
         clearOpenTransition()
 
@@ -390,6 +455,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.viewerGroup.isVisible = false
         binding.progressGroup.isVisible = false
         launchedWithImage = false
+        viewingCameraPhoto = false
     }
 
     private fun showViewer(loading: Boolean) {
@@ -415,6 +481,10 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun onBackFromViewer() {
+        if (viewingCameraPhoto) {
+            launchCamera()
+            return
+        }
 
         if (launchedWithImage && binding.ocrView.canPlayCaptureExit) {
             val fadeOut = (SelectableOcrView.CAPTURE_TRANSITION_MS * TOOLBAR_DURATION).toLong()

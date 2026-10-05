@@ -7,6 +7,12 @@
     <string name="home_subtitle">Recognition and translation run on this device — no Google services. Internet is only used to download language packs.</string>
     <string name="home_hint">Share any image to TextGrab, or add the \"OCR screenshot\" tile to quick settings: tap the tile, select the text.</string>
     <string name="pick_image">Choose image</string>
+    <string name="camera">Camera</string>
+    <string name="shortcut_camera_long">Grab text with camera</string>
+    <string name="camera_shutter">Take photo</string>
+    <string name="camera_torch">Flashlight</string>
+    <string name="camera_permission_denied">Camera access is needed to take a photo</string>
+    <string name="camera_failed">Could not take the photo</string>
 
     <string name="back">Back</string>
     <string name="copy">Copy</string>
