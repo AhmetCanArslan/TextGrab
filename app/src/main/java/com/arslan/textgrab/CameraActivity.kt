@@ -2,6 +2,7 @@ package com.arslan.textgrab
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
@@ -23,7 +24,13 @@ import androidx.core.view.updatePadding
 import com.arslan.textgrab.databinding.ActivityCameraBinding
 import java.io.File
 
-/** In-app viewfinder: saves one photo to [photoFile] and finishes with RESULT_OK. */
+/**
+ * In-app viewfinder: saves one photo to [photoFile]. Started for a result it finishes with
+ * RESULT_OK; started on its own (the launcher shortcut) it hands the photo to [MainActivity], so
+ * the shortcut opens straight into the camera with nothing in between. Its own task affinity
+ * keeps that shortcut session out of the app's main task, so the launcher icon still opens home
+ * instead of resuming the camera.
+ */
 class CameraActivity : AppCompatActivity() {
 
     companion object {
@@ -100,7 +107,14 @@ class CameraActivity : AppCompatActivity() {
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    setResult(RESULT_OK)
+                    if (callingActivity != null) {
+                        setResult(RESULT_OK)
+                    } else {
+                        startActivity(
+                            Intent(this@CameraActivity, MainActivity::class.java)
+                                .setAction(MainActivity.ACTION_CAMERA_PHOTO)
+                        )
+                    }
                     finish()
                 }
 

@@ -73,8 +73,17 @@
         </activity>
 
         <activity
+            android:name=".CaptureViewerActivity"
+            android:exported="false"
+            android:taskAffinity="${applicationId}.capture"
+            android:theme="@style/Theme.TextGrab.Starting"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden" />
+
+        <activity
             android:name=".CameraActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:taskAffinity="${applicationId}.camera"
+            android:theme="@style/Theme.TextGrab.Camera" />
 
         <receiver
             android:name=".CaptureReceiver"

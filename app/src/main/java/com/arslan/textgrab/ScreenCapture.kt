@@ -41,7 +41,8 @@ object CaptureHolder {
 
 object ScreenCapture {
 
-    private const val CONNECT_TIMEOUT_MS = 3_000L
+    private const val CONNECT_TIMEOUT_MS = 8_000L
+    private const val CAPTURE_RETRY_MS = 400L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var job: Job? = null
@@ -72,7 +73,11 @@ object ScreenCapture {
                 return@launch
             }
             delay(delayMs)
-            val bitmap = service.capture()
+            // The first screenshot right after the service binds can fail; one more try covers it.
+            val bitmap = service.capture() ?: run {
+                delay(CAPTURE_RETRY_MS)
+                service.capture()
+            }
             if (bitmap == null) {
                 Toast.makeText(app, R.string.capture_failed, Toast.LENGTH_SHORT).show()
                 return@launch
@@ -88,7 +93,7 @@ object ScreenCapture {
         return withTimeoutOrNull(CONNECT_TIMEOUT_MS) { CaptureService.instance.filterNotNull().first() }
     }
 
-    private fun viewerIntent(context: Context) = Intent(context, MainActivity::class.java)
+    private fun viewerIntent(context: Context) = Intent(context, CaptureViewerActivity::class.java)
         .putExtra(MainActivity.EXTRA_CAPTURED_SCREEN, true)
         .addFlags(
             Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or

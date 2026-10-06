@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Theme.TextGrab" parent="Theme.Material3Expressive.DynamicColors.DayNight.NoActionBar" />
 
@@ -9,6 +9,12 @@
         <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
         <item name="android:windowDisablePreview">@bool/disable_starting_window</item>
         <item name="postSplashScreenTheme">@style/Theme.TextGrab</item>
+    </style>
+
+    <!-- Black from the first frame, so a cold start from the shortcut never flashes the app surface. -->
+    <style name="Theme.TextGrab.Camera">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@android:color/black</item>
     </style>
 
     <style name="HomeSectionHeader" parent="Widget.Material3.TextView.ListItem.Overline">

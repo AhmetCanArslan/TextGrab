@@ -9,6 +9,6 @@
         <intent
             android:action="com.arslan.textgrab.action.CAMERA"
             android:targetPackage="com.arslan.textgrab"
-            android:targetClass="com.arslan.textgrab.MainActivity" />
+            android:targetClass="com.arslan.textgrab.CameraActivity" />
     </shortcut>
 </shortcuts>

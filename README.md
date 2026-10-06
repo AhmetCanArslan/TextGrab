@@ -89,7 +89,7 @@ the service supports.
 **Capture** can also be triggered from adb:
 
 ```sh
-adb shell am broadcast -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
+adb shell am broadcast --receiver-foreground -a com.arslan.textgrab.action.CAPTURE -p com.arslan.textgrab
 ```
 
 ## Credits and license

@@ -35,11 +35,11 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 
-class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
+open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     companion object {
         const val EXTRA_CAPTURED_SCREEN = "com.arslan.textgrab.CAPTURED_SCREEN"
-        const val ACTION_CAMERA = "com.arslan.textgrab.action.CAMERA"
+        const val ACTION_CAMERA_PHOTO = "com.arslan.textgrab.action.CAMERA_PHOTO"
 
         private const val STATE_LAUNCHED_FOR_CAMERA = "launched_for_camera"
         private const val STATE_CAMERA_OPEN = "camera_open"
@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
     private val cameraFile by lazy { CameraActivity.photoFile(this) }
 
-    /** Started from the camera shortcut: the home screen is never part of this session. */
+    /** Opened by the camera shortcut's photo: the home screen is never part of this session. */
     private var launchedForCamera = false
     private var cameraOpen = false
     private var viewingCameraPhoto = false
@@ -143,7 +143,8 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             }
         }
 
-        val adbCommand = "adb shell am broadcast -a ${CaptureReceiver.ACTION_CAPTURE} -p $packageName"
+        val adbCommand = "adb shell am broadcast --receiver-foreground " +
+            "-a ${CaptureReceiver.ACTION_CAPTURE} -p $packageName"
         binding.adbCommand.text = adbCommand
         binding.adbRow.setOnClickListener { copyToClipboard(adbCommand) }
 
@@ -191,8 +192,8 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
 
         if (savedInstanceState != null) {
-            // A restored activity gets the shortcut intent again; the camera was already opened for it.
-            if (intent.action == ACTION_CAMERA) intent.action = Intent.ACTION_MAIN
+            // A restored activity gets the photo intent again; that photo was already consumed.
+            if (intent.action == ACTION_CAMERA_PHOTO) intent.action = Intent.ACTION_MAIN
             cameraOpen = savedInstanceState.getBoolean(STATE_CAMERA_OPEN)
             launchedForCamera = cameraOpen && savedInstanceState.getBoolean(STATE_LAUNCHED_FOR_CAMERA)
         }
@@ -284,7 +285,7 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             else -> null
         }
 
-        val cameraRequested = intent.action == ACTION_CAMERA
+        val photoTaken = intent.action == ACTION_CAMERA_PHOTO
         val captureRequested = intent.getBooleanExtra(EXTRA_CAPTURED_SCREEN, false)
         intent.removeExtra(EXTRA_CAPTURED_SCREEN)
         intent.action = Intent.ACTION_MAIN
@@ -300,15 +301,15 @@ class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                 if (captured != null) {
                     launchedWithImage = true
                     openBitmap(captured)
-                } else showHome()
+                } else if (this is CaptureViewerActivity) finish() else showHome()
             }
             else -> {
 
                 CaptureHolder.take()
                 when {
-                    cameraRequested -> {
+                    photoTaken -> {
                         launchedForCamera = true
-                        launchCamera()
+                        openImage(Uri.fromFile(cameraFile), fromCamera = true)
                     }
                     cameraOpen -> showCameraPending()
                     else -> showHome()
