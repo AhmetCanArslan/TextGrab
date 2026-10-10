@@ -90,12 +90,11 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         super.onCreate(savedInstanceState)
 
         splash.setKeepOnScreenCondition { !contentReady }
-        splash.setOnExitAnimationListener { provider ->
-            if (capturing) {
 
-                provider.remove()
-            } else {
-
+        if (capturing) {
+            splash.setOnExitAnimationListener { provider -> provider.remove() }
+        } else if (Build.VERSION.SDK_INT < 31) {
+            splash.setOnExitAnimationListener { provider ->
                 provider.view.animate()
                     .alpha(0f)
                     .setDuration(SPLASH_FADE_MS)
