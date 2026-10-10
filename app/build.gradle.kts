@@ -55,6 +55,23 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+    androidResources {
+        localeFilters += listOf("en", "de", "tr")
+    }
 }
 
 dependencies {
