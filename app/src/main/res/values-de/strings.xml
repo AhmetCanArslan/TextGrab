@@ -33,8 +33,10 @@
     <string name="translation_failed">Übersetzung fehlgeschlagen. %1$s</string>
 
     <string name="set_as_assistant">Als Assistenz-App festlegen</string>
-    <string name="adb_label">Per adb auslösen</string>
-    <string name="adb_copy">adb-Befehl kopieren</string>
+    <string name="adb_label">Bildschirm per adb aufnehmen</string>
+    <string name="adb_copy">adb-Befehl für Aufnahme kopieren</string>
+    <string name="adb_camera_label">Kamera per adb öffnen</string>
+    <string name="adb_camera_copy">adb-Befehl für Kamera kopieren</string>
     <string name="capture_failed">Bildschirmaufnahme fehlgeschlagen</string>
 
     <string name="no_text_found">Kein Text im Bild gefunden</string>

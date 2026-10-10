@@ -29,7 +29,7 @@ import java.io.File
  * RESULT_OK; started on its own (the launcher shortcut) it hands the photo to [MainActivity], so
  * the shortcut opens straight into the camera with nothing in between. Its own task affinity
  * keeps that shortcut session out of the app's main task, so the launcher icon still opens home
- * instead of resuming the camera.
+ * instead of resuming the camera. Exported behind the DUMP permission so adb can start it too.
  */
 class CameraActivity : AppCompatActivity() {
 

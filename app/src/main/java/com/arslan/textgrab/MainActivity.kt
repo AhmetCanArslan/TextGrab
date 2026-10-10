@@ -148,6 +148,13 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.adbCommand.text = adbCommand
         binding.adbRow.setOnClickListener { copyToClipboard(adbCommand) }
 
+        val adbCameraCommand =
+            "adb shell am start -n $packageName/${CameraActivity::class.java.name}"
+        binding.adbCameraCommand.text = adbCameraCommand
+        binding.adbCameraRow.isVisible = binding.btnCamera.isVisible
+        binding.adbCameraRow.setOnClickListener { copyToClipboard(adbCameraCommand) }
+        applySegmentShapes(binding.hintRow, binding.adbRow, binding.adbCameraRow)
+
         binding.rowTargetLanguage.setOnClickListener { chooseTargetLanguage() }
         binding.rowLanguagePacks.setOnClickListener {
             LanguagePacksSheet(this) { refreshTranslationRows() }.show()

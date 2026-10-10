@@ -34,8 +34,10 @@
     <string name="translation_failed">Translation failed. %1$s</string>
 
     <string name="set_as_assistant">Set as assistant app</string>
-    <string name="adb_label">Trigger via adb</string>
-    <string name="adb_copy">Copy adb command</string>
+    <string name="adb_label">Capture the screen via adb</string>
+    <string name="adb_copy">Copy adb capture command</string>
+    <string name="adb_camera_label">Open the camera via adb</string>
+    <string name="adb_camera_copy">Copy adb camera command</string>
     <string name="capture_failed">Screen capture failed</string>
 
     <string name="no_text_found">No text found in this image</string>

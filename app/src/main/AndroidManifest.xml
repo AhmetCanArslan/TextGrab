@@ -81,7 +81,8 @@
 
         <activity
             android:name=".CameraActivity"
-            android:exported="false"
+            android:exported="true"
+            android:permission="android.permission.DUMP"
             android:taskAffinity="${applicationId}.camera"
             android:theme="@style/Theme.TextGrab.Camera" />
 

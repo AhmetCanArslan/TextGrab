@@ -253,6 +253,7 @@
                 android:orientation="vertical">
 
                 <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/hintRow"
                     style="@style/ListItemCard"
                     android:clickable="false"
                     android:focusable="false"
@@ -293,6 +294,37 @@
 
                             <TextView
                                 android:id="@+id/adbCommand"
+                                style="@style/ListItemSupportingText"
+                                android:layout_marginTop="4dp"
+                                android:fontFamily="monospace" />
+                        </LinearLayout>
+
+                        <ImageView
+                            style="@style/ListItemTrailingIcon"
+                            android:src="@drawable/ic_copy" />
+                    </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
+
+                <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/adbCameraRow"
+                    style="@style/ListItemCard"
+                    android:contentDescription="@string/adb_camera_copy"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.Last">
+
+                    <LinearLayout style="@style/ListItemRow">
+
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_code" />
+
+                        <LinearLayout style="@style/ListItemTextGroup">
+
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/adb_camera_label" />
+
+                            <TextView
+                                android:id="@+id/adbCameraCommand"
                                 style="@style/ListItemSupportingText"
                                 android:layout_marginTop="4dp"
                                 android:fontFamily="monospace" />
