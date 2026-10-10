@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="intent_extract_text">Metni çıkar</string>
+    <string name="tile_label">OCR ekran görüntüsü</string>
+
+    <string name="home_subtitle">Tanıma ve çeviri bu cihazda çalışır; Google servisleri gerekmez. İnternet yalnızca dil paketlerini indirmek için kullanılır.</string>
+    <string name="home_hint">Herhangi bir görseli TextGrab ile paylaşın veya \"OCR ekran görüntüsü\" kutucuğunu hızlı ayarlara ekleyin: kutucuğa dokunun, metni seçin.</string>
+    <string name="pick_image">Görsel seç</string>
+    <string name="camera">Kamera</string>
+    <string name="shortcut_camera_long">Kamerayla metin yakala</string>
+    <string name="camera_shutter">Fotoğraf çek</string>
+    <string name="camera_torch">El feneri</string>
+    <string name="camera_permission_denied">Fotoğraf çekmek için kamera izni gerekli</string>
+    <string name="camera_failed">Fotoğraf çekilemedi</string>
+
+    <string name="back">Geri</string>
+    <string name="copy">Kopyala</string>
+    <string name="copy_all">Tüm metni kopyala</string>
+    <string name="copied">Panoya kopyalandı</string>
+    <string name="share">Paylaş</string>
+    <string name="select_all">Tümünü seç</string>
+    <string name="select_all_short">Tümü</string>
+    <string name="search_web">Web\'de ara</string>
+    <string name="view_as_text">Metin olarak göster</string>
+    <string name="recognized_text">Tanınan metin</string>
+    <string name="translate">Çevir</string>
+    <string name="translate_to">Çeviri dili</string>
+    <string name="show_original">Orijinali göster</string>
+    <string name="translated_from">%1$s → %2$s</string>
+    <string name="change_language">Değiştir</string>
+    <string name="already_in_language">Metin zaten %1$s</string>
+    <string name="downloading_models">Dil modelleri indiriliyor (dil başına yaklaşık 30 MB, yalnızca bir kez)…</string>
+    <string name="translation_failed">Çeviri başarısız oldu. %1$s</string>
+
+    <string name="set_as_assistant">Asistan uygulaması yap</string>
+    <string name="adb_label">Ekranı adb ile yakala</string>
+    <string name="adb_copy">adb yakalama komutunu kopyala</string>
+    <string name="adb_camera_label">Kamerayı adb ile aç</string>
+    <string name="adb_camera_copy">adb kamera komutunu kopyala</string>
+    <string name="capture_failed">Ekran yakalanamadı</string>
+
+    <string name="no_text_found">Bu görselde metin bulunamadı</string>
+    <string name="load_failed">Görsel açılamadı. %1$s</string>
+
+    <string name="home_tagline">Her görseldeki metni seçin, kopyalayın ve çevirin</string>
+    <string name="section_setup">Kurulum</string>
+    <string name="section_translation">Çeviri</string>
+    <string name="section_more">İpuçları ve gelişmiş</string>
+    <string name="set_as_assistant_summary">Asistan hareketiyle metin yakalayın</string>
+    <string name="language_packs">Dil paketleri</string>
+    <string name="language_packs_summary">%1$d paket yüklü · çevrimdışı çalışır</string>
+    <string name="language_packs_hint">Her paket yaklaşık 30 MB\'tır ve yüklendikten sonra çevrimdışı çalışır. Çeviri dili yapmak için bir dile dokunun.</string>
+    <string name="language_downloaded">Yüklü</string>
+    <string name="language_not_downloaded">Yüklü değil · ~30 MB</string>
+    <string name="language_built_in">Yerleşik</string>
+    <string name="language_downloading">İndiriliyor…</string>
+    <string name="language_download">İndir</string>
+    <string name="language_delete">Sil</string>
+    <string name="language_delete_confirm">%1$s dil paketi silinsin mi?</string>
+    <string name="language_download_failed">İndirme başarısız oldu. %1$s</string>
+
+    <string name="engine_title">Çeviri motoru</string>
+    <string name="engine_hint">Çeviriyi neyin yapacağını seçin. Yerleşik motor bu cihazda çalışır; diğerleri tanınan metni, kendi API anahtarınızla yapılandırdığınız bir servise gönderir.</string>
+    <string name="engine_on_device">Cihaz içi (ML Kit)</string>
+    <string name="engine_on_device_summary">Ücretsiz, gizli, çevrimdışı çalışır. Cümle cümle çevirir.</string>
+    <string name="engine_deepl">DeepL</string>
+    <string name="engine_deepl_summary">Doğal ifadeler, Avrupa dillerinde güçlü. DeepL API anahtarı gerekir.</string>
+    <string name="engine_google">Google Cloud Translation</string>
+    <string name="engine_google_summary">En geniş dil desteği. Google Cloud API anahtarı gerekir.</string>
+    <string name="engine_openai">LLM (özel / OpenAI uyumlu)</string>
+    <string name="engine_openai_summary">Tüm ekranı tek seferde çevirir, böylece ifadeler tutarlı kalır. OpenAI, Gemini, DeepSeek, OpenRouter, Groq, Mistral, Together, yerel bir Ollama veya LM Studio ya da kendi yazacağınız başka bir uç nokta.</string>
+    <string name="engine_anthropic">Claude (Anthropic)</string>
+    <string name="engine_anthropic_summary">Tüm ekranı tek seferde çevirir; arayüz metinlerinde ve kısa etiketlerde iyidir.</string>
+    <string name="engine_offline">Çevrimdışı çalışır</string>
+    <string name="engine_configured">Hazır</string>
+    <string name="engine_not_configured">API anahtarı gerekli</string>
+    <string name="engine_configure">Yapılandır</string>
+    <string name="engine_key">API anahtarı</string>
+    <string name="engine_model">Model</string>
+    <string name="engine_endpoint">API uç noktası</string>
+    <string name="engine_endpoint_auto">Anahtara göre otomatik seçilir</string>
+    <string name="engine_test">Test et</string>
+    <string name="engine_testing">Test ediliyor…</string>
+    <string name="engine_test_ok">Çalışıyor: %1$s</string>
+    <string name="engine_test_failed">%1$s</string>
+    <string name="engine_save">Kaydet</string>
+    <string name="engine_clear">Kaldır</string>
+    <string name="engine_privacy">Çevirdiğiniz metin bu cihazdan çıkar ve yukarıdaki servise gönderilir.</string>
+    <string name="engine_needs_key">%1$s için API anahtarı gerekli. Çeviri motoru bölümünden ayarlayın.</string>
+    <string name="engine_key_help_deepl">deepl.com/pro-api adresinden bir anahtar oluşturun; ücretsiz katman ayda 500.000 karaktere izin verir. Ücretsiz anahtarlar “:fx” ile biter.</string>
+    <string name="engine_key_help_google">Google Cloud\'da Cloud Translation API\'yi etkinleştirin ve bir API anahtarı oluşturun. Karakter başına ücretlendirilir.</string>
+    <string name="engine_key_help_openai">OpenAI\'ın /chat/completions API\'sini destekleyen her servisle çalışır. Bir ön ayara dokunun veya kendi uç noktanızı ve model adınızı yazın. Bu cihazda çalışan bir sunucu (Ollama, LM Studio) anahtar gerektirmez.</string>
+    <string name="engine_key_help_anthropic">console.anthropic.com adresinden bir anahtar oluşturun. Çeviri için küçük ve hızlı bir model fazlasıyla yeterlidir.</string>
+    <string name="engine_row_summary_cloud">%1$s · kendi API anahtarınız</string>
+    <string name="a11y_setup">Ekran yakalamayı aç</string>
+    <string name="a11y_setup_summary">Kutucuğun ekranı yakalayabilmesi için erişilebilirlik ayarlarında TextGrab\'ı etkinleştirin</string>
+    <string name="a11y_label">TextGrab ekran yakalama</string>
+    <string name="a11y_description">Kutucuğa dokunduğunuzda veya asistan hareketini kullandığınızda ekran görüntüsü alır ve yakalamaların anında açılması için TextGrab\'ı çalışır durumda tutar. Erişilebilirlik olayı almaz, pencere içeriğini okumaz ve girdilerinizi izlemez.</string>
+    <string name="a11y_not_ready">Ekran yakalama kapalı. Açmak için TextGrab\'ı açın</string>
+    <string name="capture_unsupported">Ekran yakalama için Android 11 veya üstü gerekir</string>
+</resources>
