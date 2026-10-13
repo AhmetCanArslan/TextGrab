@@ -51,6 +51,9 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         private const val TOOLBAR_SLIDE = 0.4f
 
         private const val TOOLBAR_SLIDE_FALLBACK_PX = 96
+
+        /** What a QR code may hand to another app; anything else is only shown as text. */
+        private val OPENABLE_SCHEMES = setOf("http", "https", "mailto", "tel", "sms", "smsto", "geo")
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -445,10 +448,19 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     private suspend fun recognize(bitmap: Bitmap) {
         binding.ocrProgress.show()
         try {
-            val result = OcrEngine.recognize(bitmap)
+            // A QR code that fails to scan must not cost the user the text around it.
+            val codes = try {
+                QrScanner.scan(bitmap)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("TextGrab", "QR scan failed", e)
+                emptyList()
+            }
+            val result = OcrEngine.recognize(bitmap, codes.map { it.box })
             currentResult = result
-            binding.ocrView.setContent(bitmap, result)
-            if (result.isEmpty) {
+            binding.ocrView.setContent(bitmap, result, codes)
+            if (result.isEmpty && codes.isEmpty()) {
                 Snackbar.make(binding.root, R.string.no_text_found, Snackbar.LENGTH_LONG).show()
             }
         } finally {
@@ -519,6 +531,29 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
         binding.selectionToolbar.isVisible = true
         binding.selectionToolbar.post { positionToolbar(anchor) }
+    }
+
+    override fun onCodeTapped(code: QrScanner.Code) {
+        val text = code.text
+        val sheet = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.sheet_text, null)
+        view.findViewById<TextView>(R.id.sheetTitle).setText(R.string.qr_code)
+        view.findViewById<TextView>(R.id.sheetText).text = text
+        view.findViewById<View>(R.id.sheetCopy).setOnClickListener {
+            copyToClipboard(text)
+            sheet.dismiss()
+        }
+        view.findViewById<View>(R.id.sheetShare).setOnClickListener { shareText(text) }
+        val link = Uri.parse(text.trim()).takeIf { it.scheme?.lowercase() in OPENABLE_SCHEMES }
+        view.findViewById<View>(R.id.sheetOpen).apply {
+            isVisible = link != null
+            setOnClickListener {
+                runCatching { startActivity(Intent(Intent.ACTION_VIEW, link)) }
+                    .onSuccess { sheet.dismiss() }
+            }
+        }
+        sheet.setContentView(view)
+        sheet.show()
     }
 
     private fun positionToolbar(anchor: RectF) {

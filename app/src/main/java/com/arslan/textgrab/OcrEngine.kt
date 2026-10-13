@@ -87,7 +87,8 @@ object OcrEngine {
         latin = null
     }
 
-    suspend fun recognize(bitmap: Bitmap): Result {
+    /** Lines centred inside [exclude] are dropped: the modules of a QR code read as junk text. */
+    suspend fun recognize(bitmap: Bitmap, exclude: List<RectF> = emptyList()): Result {
         val image = InputImage.fromBitmap(bitmap, 0)
         var best = score(latin().run(image))
 
@@ -97,7 +98,9 @@ object OcrEngine {
                 if (candidate.score > best.score) best = candidate
             }
         }
-        return buildResult(best.lines)
+        return buildResult(best.lines.filterNot { line ->
+            exclude.any { it.contains(line.box.centerX(), line.box.centerY()) }
+        })
     }
 
     private suspend fun TextRecognizer.run(image: InputImage): Text =

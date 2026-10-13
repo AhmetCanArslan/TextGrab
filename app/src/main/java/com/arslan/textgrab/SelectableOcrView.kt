@@ -34,6 +34,8 @@ class SelectableOcrView @JvmOverloads constructor(
     interface Listener {
 
         fun onSelectionChanged(text: String?, anchor: RectF?)
+
+        fun onCodeTapped(code: QrScanner.Code)
     }
 
     var listener: Listener? = null
@@ -84,6 +86,7 @@ class SelectableOcrView @JvmOverloads constructor(
     private var bitmap: Bitmap? = null
     private var result: OcrEngine.Result? = null
     private var lines: LineIndex? = null
+    private var codes: List<QrScanner.Code> = emptyList()
     private var backdrop: BlurredBackdrop? = null
 
     private var captureProgress = 1f
@@ -137,6 +140,10 @@ class SelectableOcrView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = dp(2f)
     }
+    private val codeFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ColorUtils.setAlphaComponent(accentColor, CODE_FILL_ALPHA)
+        style = Paint.Style.FILL
+    }
     private val overlayBgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val overlayTextPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
     private val backgroundPaint = Paint().apply {
@@ -164,6 +171,7 @@ class SelectableOcrView @JvmOverloads constructor(
         bitmap = bmp
         result = null
         lines = null
+        codes = emptyList()
         lineColorCache = null
         backdrop = if (capturePreview) BlurredBackdrop(bmp) else null
         selStart = -1
@@ -173,11 +181,12 @@ class SelectableOcrView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setContent(bmp: Bitmap, ocr: OcrEngine.Result) {
+    fun setContent(bmp: Bitmap, ocr: OcrEngine.Result, qr: List<QrScanner.Code> = emptyList()) {
         val sameImage = bitmap === bmp
         bitmap = bmp
         result = ocr
         lines = LineIndex(ocr.words)
+        codes = qr
         // Colours are sampled per line box, so a new result invalidates them even
         // when the bitmap is the same instance.
         lineColorCache = null
@@ -202,6 +211,7 @@ class SelectableOcrView @JvmOverloads constructor(
         bitmap = null
         result = null
         lines = null
+        codes = emptyList()
         backdrop = null
         selStart = -1
         selEnd = -1
@@ -429,6 +439,7 @@ class SelectableOcrView @JvmOverloads constructor(
         }
 
         val r = result ?: return
+        drawCodes(canvas)
         val t = drawnTranslations
         val colors = overlayColors
         val styles = overlayStyles
@@ -568,6 +579,16 @@ class SelectableOcrView @JvmOverloads constructor(
         }
     }
 
+    private fun drawCodes(canvas: Canvas) {
+        for (code in codes) {
+            tmpRect.set(code.box)
+            imageMatrix.mapRect(tmpRect)
+            tmpRect.inset(-dp(4f), -dp(4f))
+            canvas.drawRoundRect(tmpRect, dp(8f), dp(8f), codeFillPaint)
+            canvas.drawRoundRect(tmpRect, dp(8f), dp(8f), handleStemPaint)
+        }
+    }
+
     private fun drawSelection(canvas: Canvas, r: OcrEngine.Result) {
         var first: RectF? = null
         var last: RectF? = null
@@ -640,6 +661,10 @@ class SelectableOcrView @JvmOverloads constructor(
                     notifySelection()
                 } else {
                     clearSelection()
+                    codeAt(e.x, e.y)?.let {
+                        performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                        listener?.onCodeTapped(it)
+                    }
                 }
                 invalidate()
                 return true
@@ -762,6 +787,15 @@ class SelectableOcrView @JvmOverloads constructor(
         return index.wordAt(x, y, slop = dp(6f) / currentScale)
     }
 
+    private fun codeAt(vx: Float, vy: Float): QrScanner.Code? {
+        val (x, y) = toBitmapSpace(vx, vy)
+        val slop = dp(6f) / currentScale
+        return codes.firstOrNull {
+            x >= it.box.left - slop && x <= it.box.right + slop &&
+                y >= it.box.top - slop && y <= it.box.bottom + slop
+        }
+    }
+
     private fun nearestWord(vx: Float, vy: Float): Int {
         val index = lines ?: return -1
         val (x, y) = toBitmapSpace(vx, vy)
@@ -798,6 +832,7 @@ class SelectableOcrView @JvmOverloads constructor(
 
     companion object {
         private const val SELECTION_ALPHA = 0x66
+        private const val CODE_FILL_ALPHA = 0x33
 
 
         const val CAPTURE_TRANSITION_MS = 420f

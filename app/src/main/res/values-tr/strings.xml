@@ -23,6 +23,8 @@
     <string name="search_web">Web\'de ara</string>
     <string name="view_as_text">Metin olarak göster</string>
     <string name="recognized_text">Tanınan metin</string>
+    <string name="qr_code">QR kodu</string>
+    <string name="open">Aç</string>
     <string name="translate">Çevir</string>
     <string name="translate_to">Çeviri dili</string>
     <string name="show_original">Orijinali göster</string>

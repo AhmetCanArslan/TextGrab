@@ -23,6 +23,8 @@
     <string name="search_web">Im Web suchen</string>
     <string name="view_as_text">Als Text anzeigen</string>
     <string name="recognized_text">Erkannter Text</string>
+    <string name="qr_code">QR-Code</string>
+    <string name="open">Öffnen</string>
     <string name="translate">Übersetzen</string>
     <string name="translate_to">Übersetzen nach</string>
     <string name="show_original">Original anzeigen</string>

@@ -35,6 +35,9 @@ Then tap a word, or long-press and drag, to copy, share or search the
 selection. The translate button replaces every line in place; tap again for
 the original, long-press to pick the target language.
 
+QR codes in the image are outlined next to the text: tap one to read, copy,
+share or open what it holds.
+
 ## Translation engines
 
 Chosen under **Translation engine** on the home screen. Cloud engines need

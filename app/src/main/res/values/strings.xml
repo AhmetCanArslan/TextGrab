@@ -24,6 +24,8 @@
     <string name="search_web">Search the web</string>
     <string name="view_as_text">View as text</string>
     <string name="recognized_text">Recognized text</string>
+    <string name="qr_code">QR code</string>
+    <string name="open">Open</string>
     <string name="translate">Translate</string>
     <string name="translate_to">Translate to</string>
     <string name="show_original">Show original</string>
