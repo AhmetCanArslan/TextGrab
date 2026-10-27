@@ -80,6 +80,8 @@ object ScreenCapture {
                 Toast.makeText(app, R.string.a11y_not_ready, Toast.LENGTH_LONG).show()
                 return@launch
             }
+            // The models load while the shade or the assist gesture gets out of the way.
+            OcrEngine.warmUp()
             delay(delayMs)
             // The first screenshot right after the service binds can fail; one more try covers it.
             val bitmap = service.capture() ?: run {
