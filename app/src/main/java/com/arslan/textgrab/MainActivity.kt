@@ -448,19 +448,11 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     private suspend fun recognize(bitmap: Bitmap) {
         binding.ocrProgress.show()
         try {
-            // A QR code that fails to scan must not cost the user the text around it.
-            val codes = try {
-                QrScanner.scan(bitmap)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.w("TextGrab", "QR scan failed", e)
-                emptyList()
-            }
-            val result = OcrEngine.recognize(bitmap, codes.map { it.box })
+            val reading = OcrEngine.read(bitmap)
+            val result = reading.result
             currentResult = result
-            binding.ocrView.setContent(bitmap, result, codes)
-            if (result.isEmpty && codes.isEmpty()) {
+            binding.ocrView.setContent(bitmap, result, reading.codes)
+            if (result.isEmpty && reading.codes.isEmpty()) {
                 Snackbar.make(binding.root, R.string.no_text_found, Snackbar.LENGTH_LONG).show()
             }
         } finally {

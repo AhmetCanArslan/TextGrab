@@ -14,6 +14,9 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 object OcrEngine {
@@ -56,6 +59,8 @@ object OcrEngine {
             }
     }
 
+    class Reading(val result: Result, val codes: List<QrScanner.Code>)
+
     private class Line(val box: RectF, val words: List<Pair<String, RectF>>, val blockId: Int)
 
     private class Scored(val lines: List<Line>, val score: Float, val meanConfidence: Float)
@@ -91,8 +96,25 @@ object OcrEngine {
         QrScanner.release()
     }
 
+    /** Text and QR codes of [bitmap]; both models run side by side. */
+    suspend fun read(bitmap: Bitmap): Reading = coroutineScope {
+        // A QR code that fails to scan must not cost the user the text around it.
+        val codes = async {
+            try {
+                QrScanner.scan(bitmap)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.w("TextGrab", "QR scan failed", e)
+                emptyList()
+            }
+        }
+        val result = recognize(bitmap) { codes.await().map { it.box } }
+        Reading(result, codes.await())
+    }
+
     /** Lines centred inside [exclude] are dropped: the modules of a QR code read as junk text. */
-    suspend fun recognize(bitmap: Bitmap, exclude: List<RectF> = emptyList()): Result {
+    private suspend fun recognize(bitmap: Bitmap, exclude: suspend () -> List<RectF>): Result {
         val image = InputImage.fromBitmap(bitmap, 0)
         var best = score(latin().run(image))
 
@@ -102,8 +124,9 @@ object OcrEngine {
                 if (candidate.score > best.score) best = candidate
             }
         }
+        val excluded = exclude()
         return buildResult(best.lines.filterNot { line ->
-            exclude.any { it.contains(line.box.centerX(), line.box.centerY()) }
+            excluded.any { it.contains(line.box.centerX(), line.box.centerY()) }
         })
     }
 
