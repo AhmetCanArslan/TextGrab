@@ -75,16 +75,20 @@ object OcrEngine {
     private fun latin(): TextRecognizer =
         latin ?: TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).also { latin = it }
 
+    /** Loads the models in the background, so the first image does not pay for it. */
     fun warmUp() {
         if (latin != null) return
         val bmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
-        latin().process(InputImage.fromBitmap(bmp, 0))
+        val image = InputImage.fromBitmap(bmp, 0)
+        QrScanner.warmUp(image)
+        latin().process(image)
             .addOnCompleteListener { bmp.recycle() }
     }
 
     fun release() {
         latin?.close()
         latin = null
+        QrScanner.release()
     }
 
     /** Lines centred inside [exclude] are dropped: the modules of a QR code read as junk text. */
