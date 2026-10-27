@@ -315,7 +315,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             }
             else -> {
 
-                CaptureHolder.take()
+                CaptureHolder.take()?.reading?.cancel()
                 when {
                     photoTaken -> {
                         launchedForCamera = true

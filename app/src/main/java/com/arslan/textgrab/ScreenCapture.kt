@@ -93,7 +93,10 @@ object ScreenCapture {
                 return@launch
             }
             CaptureHolder.put(CaptureHolder.Capture(bitmap, scope.async { OcrEngine.read(bitmap) }))
-            runCatching { service.startActivity(viewerIntent(app)) }
+            runCatching { service.startActivity(viewerIntent(app)) }.onFailure {
+                CaptureHolder.take()?.reading?.cancel()
+                OcrEngine.release()
+            }
         }.also { job = it }
     }
 
