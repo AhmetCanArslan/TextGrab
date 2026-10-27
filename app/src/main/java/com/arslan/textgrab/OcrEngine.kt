@@ -80,6 +80,10 @@ object OcrEngine {
     private fun latin(): TextRecognizer =
         latin ?: TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).also { latin = it }
 
+    /** Reads in flight; the models stay loaded until the last one finishes. */
+    private var reading = 0
+    private var releasePending = false
+
     /** Loads the models in the background, so the first image does not pay for it. */
     fun warmUp() {
         if (latin != null) return
@@ -90,27 +94,41 @@ object OcrEngine {
             .addOnCompleteListener { bmp.recycle() }
     }
 
+    /** Frees the models' memory, or does so once the reads in flight are done. */
     fun release() {
+        if (reading > 0) {
+            releasePending = true
+            return
+        }
+        releasePending = false
         latin?.close()
         latin = null
         QrScanner.release()
     }
 
     /** Text and QR codes of [bitmap]; both models run side by side. */
-    suspend fun read(bitmap: Bitmap): Reading = coroutineScope {
-        // A QR code that fails to scan must not cost the user the text around it.
-        val codes = async {
-            try {
-                QrScanner.scan(bitmap)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                android.util.Log.w("TextGrab", "QR scan failed", e)
-                emptyList()
+    suspend fun read(bitmap: Bitmap): Reading {
+        reading++
+        try {
+            return coroutineScope {
+                // A QR code that fails to scan must not cost the user the text around it.
+                val codes = async {
+                    try {
+                        QrScanner.scan(bitmap)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        android.util.Log.w("TextGrab", "QR scan failed", e)
+                        emptyList()
+                    }
+                }
+                val result = recognize(bitmap) { codes.await().map { it.box } }
+                Reading(result, codes.await())
             }
+        } finally {
+            reading--
+            if (reading == 0 && releasePending) release()
         }
-        val result = recognize(bitmap) { codes.await().map { it.box } }
-        Reading(result, codes.await())
     }
 
     /** Lines centred inside [exclude] are dropped: the modules of a QR code read as junk text. */
