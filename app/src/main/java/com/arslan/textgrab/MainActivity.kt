@@ -30,6 +30,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.arslan.textgrab.databinding.ActivityMainBinding
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -309,7 +310,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                 val captured = CaptureHolder.take()
                 if (captured != null) {
                     launchedWithImage = true
-                    openBitmap(captured)
+                    openCapture(captured)
                 } else if (this is CaptureViewerActivity) finish() else showHome()
             }
             else -> {
@@ -369,15 +370,15 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
     }
 
-    private fun openBitmap(bitmap: Bitmap) {
+    private fun openCapture(capture: CaptureHolder.Capture) {
         viewingCameraPhoto = false
         binding.ocrView.capturePreview = true
         clearOpenTransition()
 
-        showImage(bitmap)
+        showImage(capture.bitmap)
         binding.ocrView.playCaptureEntry()
         playToolbarEntry()
-        startOcr { recognize(bitmap) }
+        startOcr { recognize(capture.bitmap, capture.reading) }
     }
 
     private fun clearOpenTransition() {
@@ -445,10 +446,19 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         showViewer(loading = false)
     }
 
-    private suspend fun recognize(bitmap: Bitmap) {
+    /** [pending] is a read already started for [bitmap], as for a screen capture. */
+    private suspend fun recognize(bitmap: Bitmap, pending: Deferred<OcrEngine.Reading>? = null) {
         binding.ocrProgress.show()
         try {
-            val reading = OcrEngine.read(bitmap)
+            val reading = if (pending != null) {
+                try {
+                    pending.await()
+                } finally {
+                    pending.cancel()
+                }
+            } else {
+                OcrEngine.read(bitmap)
+            }
             val result = reading.result
             currentResult = result
             binding.ocrView.setContent(bitmap, result, reading.codes)

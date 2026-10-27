@@ -9,9 +9,11 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -22,20 +24,26 @@ object CaptureHolder {
 
     private const val MAX_AGE_MS = 30_000L
 
-    private var bitmap: Bitmap? = null
+    /** A screenshot and its text, read while the viewer is still starting. */
+    class Capture(val bitmap: Bitmap, val reading: Deferred<OcrEngine.Reading>)
+
+    private var capture: Capture? = null
     private var putAt = 0L
 
     @Synchronized
-    fun put(b: Bitmap) {
-        bitmap = b
+    fun put(c: Capture) {
+        capture?.reading?.cancel()
+        capture = c
         putAt = SystemClock.elapsedRealtime()
     }
 
     @Synchronized
-    fun take(): Bitmap? {
-        val b = bitmap
-        bitmap = null
-        return b?.takeIf { SystemClock.elapsedRealtime() - putAt <= MAX_AGE_MS }
+    fun take(): Capture? {
+        val c = capture ?: return null
+        capture = null
+        if (SystemClock.elapsedRealtime() - putAt <= MAX_AGE_MS) return c
+        c.reading.cancel()
+        return null
     }
 }
 
@@ -82,7 +90,7 @@ object ScreenCapture {
                 Toast.makeText(app, R.string.capture_failed, Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            CaptureHolder.put(bitmap)
+            CaptureHolder.put(CaptureHolder.Capture(bitmap, scope.async { OcrEngine.read(bitmap) }))
             runCatching { service.startActivity(viewerIntent(app)) }
         }.also { job = it }
     }
