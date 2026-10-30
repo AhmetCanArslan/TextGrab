@@ -21,6 +21,7 @@ class CaptureService : AccessibilityService() {
 
     override fun onServiceConnected() {
         instance.value = this
+        ScreenCapture.prewarm(this)
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
