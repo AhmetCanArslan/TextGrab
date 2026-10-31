@@ -140,18 +140,19 @@ object Translator {
 
     private fun paragraphs(result: OcrEngine.Result, texts: List<String>): List<Paragraph> {
         val rows = rowOfLine(result)
+        // Lines arrive row by row, so a paragraph's lines are interleaved with whatever else
+        // shares those rows: a side badge, a button, a word OCR split off the end of the line.
+        // Each line therefore joins whichever open paragraph it continues, rather than only the
+        // line read just before it - otherwise a single stray label cuts a paragraph into
+        // per-line fragments that are translated without each other's context.
         val runs = ArrayList<MutableList<Int>>()
-        var current: MutableList<Int>? = null
         for (id in texts.indices) {
-            if (isUntranslatable(texts[id])) {
-                current = null
-                continue
-            }
-            val prev = current?.last()
-            if (prev == null || !continuesParagraph(result, rows, texts, prev, id)) {
-                current = mutableListOf<Int>().also { runs.add(it) }
-            }
-            current!!.add(id)
+            if (isUntranslatable(texts[id])) continue
+            val box = result.lineBoxes[id]
+            val run = runs
+                .filter { continuesParagraph(result, rows, texts, it.last(), id) }
+                .minByOrNull { box.top - result.lineBoxes[it.last()].bottom }
+            if (run != null) run.add(id) else runs.add(mutableListOf(id))
         }
         return runs.map { run ->
             val marker = BULLET.find(texts[run.first()].trimStart())?.value?.trim().orEmpty()
