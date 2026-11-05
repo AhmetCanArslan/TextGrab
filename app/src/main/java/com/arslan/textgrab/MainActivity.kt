@@ -197,7 +197,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             when {
                 binding.ocrView.hasSelection() -> binding.ocrView.clearSelection()
                 binding.viewerGroup.isVisible -> onBackFromViewer()
-                else -> finish()
+                else -> closeScreen()
             }
         }
 
@@ -390,6 +390,9 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
     }
 
+    /** Back-exit: a capture viewer also drops its recents card; the main app just finishes. */
+    private fun closeScreen() = if (this is CaptureViewerActivity) finishAndRemoveTask() else finish()
+
     private fun finishWithoutTransition() {
         if (Build.VERSION.SDK_INT >= 34) {
             overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
@@ -523,7 +526,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         }
 
         clearViewerContent()
-        if (launchedWithImage) finish() else showHome()
+        if (launchedWithImage) closeScreen() else showHome()
     }
 
     override fun onSelectionChanged(text: String?, anchor: RectF?) {
