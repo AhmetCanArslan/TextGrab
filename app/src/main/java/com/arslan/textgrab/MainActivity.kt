@@ -1,6 +1,7 @@
 package com.arslan.textgrab
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -393,6 +394,12 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     /** Back-exit: a capture viewer also drops its recents card; the main app just finishes. */
     private fun closeScreen() = if (this is CaptureViewerActivity) finishAndRemoveTask() else finish()
 
+    /** Drops the recents card right away, so it doesn't linger while the exit animation plays. */
+    private fun hideFromRecents() {
+        if (this !is CaptureViewerActivity) return
+        getSystemService(ActivityManager::class.java)?.appTasks?.forEach { it.setExcludeFromRecents(true) }
+    }
+
     private fun finishWithoutTransition() {
         if (Build.VERSION.SDK_INT >= 34) {
             overrideActivityTransition(Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
@@ -521,6 +528,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             }
             ocrJob?.cancel()
             binding.ocrProgress.hide()
+            hideFromRecents()
             binding.ocrView.playCaptureExit { finishWithoutTransition() }
             return
         }
