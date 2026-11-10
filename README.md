@@ -12,7 +12,8 @@ no Google Play services.
 
 Download the latest APK from
 [Releases](https://github.com/AhmetCanArslan/TextGrab/releases). Requires
-Android 8.0; screen capture needs Android 11.
+Android 8.0. Before Android 11, screen capture asks for the system's capture
+permission on first use and shows a notification while it is on.
 
 ## Setup
 
