@@ -100,4 +100,8 @@
     <string name="a11y_description">Kutucuğa dokunduğunuzda veya asistan hareketini kullandığınızda ekran görüntüsü alır ve yakalamaların anında açılması için TextGrab\'ı çalışır durumda tutar. Erişilebilirlik olayı almaz, pencere içeriğini okumaz ve girdilerinizi izlemez.</string>
     <string name="a11y_not_ready">Ekran yakalama kapalı. Açmak için TextGrab\'ı açın</string>
     <string name="capture_unsupported">Ekran yakalama için Android 11 veya üstü gerekir</string>
+    <string name="projection_channel">Ekran yakalama</string>
+    <string name="projection_active">Ekran yakalama hazır</string>
+    <string name="projection_active_summary">Ekrandaki metni okumak için kutucuğa dokunun</string>
+    <string name="projection_stop">Durdur</string>
 </resources>

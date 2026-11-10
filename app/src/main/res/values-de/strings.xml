@@ -66,4 +66,8 @@
     <string name="a11y_description">Nimmt einen Screenshot auf, wenn du die Kachel antippst oder die Assistenz-Geste nutzt, und hält TextGrab aktiv, damit Aufnahmen sofort öffnen. Es empfängt keine Bedienungshilfe-Ereignisse, liest keine Fensterinhalte und beobachtet keine Eingaben.</string>
     <string name="a11y_not_ready">Bildschirmaufnahme ist aus. Öffne TextGrab, um sie zu aktivieren</string>
     <string name="capture_unsupported">Bildschirmaufnahme erfordert Android 11 oder neuer</string>
+    <string name="projection_channel">Bildschirmaufnahme</string>
+    <string name="projection_active">Bildschirmaufnahme ist bereit</string>
+    <string name="projection_active_summary">Tippe auf die Kachel, um Text vom Bildschirm zu lesen</string>
+    <string name="projection_stop">Beenden</string>
 </resources>

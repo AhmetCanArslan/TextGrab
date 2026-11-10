@@ -5,6 +5,13 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Screen capture before Android 11 runs through a media projection service. -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
+        android:maxSdkVersion="29" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+        android:maxSdkVersion="29" />
 
     <uses-feature
         android:name="android.hardware.camera.any"
@@ -73,6 +80,13 @@
         </activity>
 
         <activity
+            android:name=".ProjectionRequestActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <activity
             android:name=".CaptureViewerActivity"
             android:exported="false"
             android:taskAffinity="${applicationId}.capture"
@@ -107,6 +121,11 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/capture_service_config" />
         </service>
+
+        <service
+            android:name=".ProjectionService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
         <service
             android:name=".ScreenshotTileService"

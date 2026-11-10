@@ -101,4 +101,8 @@
     <string name="a11y_description">Takes a screenshot when you tap the tile or use the assistant gesture, and keeps TextGrab running so captures open instantly. It receives no accessibility events, does not read window content and does not observe your input.</string>
     <string name="a11y_not_ready">Screen capture is off. Open TextGrab to turn it on</string>
     <string name="capture_unsupported">Screen capture needs Android 11 or newer</string>
+    <string name="projection_channel">Screen capture</string>
+    <string name="projection_active">Screen capture is ready</string>
+    <string name="projection_active_summary">Tap the tile to read text from the screen</string>
+    <string name="projection_stop">Stop</string>
 </resources>
