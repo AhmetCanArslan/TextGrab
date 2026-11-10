@@ -233,7 +233,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun refreshSetup() {
-        binding.btnAccessibility.isVisible = ScreenCapture.supported && !ScreenCapture.isEnabled(this)
+        binding.btnAccessibility.isVisible = ScreenCapture.viaAccessibility && !ScreenCapture.isEnabled(this)
         binding.btnSetAssistant.isVisible = !isAssistantApp()
         val needsSetup = binding.btnAccessibility.isVisible || binding.btnSetAssistant.isVisible
         binding.setupHeader.isVisible = needsSetup

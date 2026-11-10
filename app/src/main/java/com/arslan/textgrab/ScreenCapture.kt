@@ -55,12 +55,16 @@ object ScreenCapture {
 
     private const val CONNECT_TIMEOUT_MS = 8_000L
     private const val CAPTURE_RETRY_MS = 400L
+    private const val CONSENT_DISMISS_MS = 400L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var job: Job? = null
 
-    /** Accessibility services can take screenshots from Android 11 on. */
-    val supported: Boolean get() = Build.VERSION.SDK_INT >= 30
+    /**
+     * Accessibility services can take screenshots from Android 11 on; before that the capture
+     * goes through a media projection the user grants on the first capture.
+     */
+    val viaAccessibility: Boolean get() = Build.VERSION.SDK_INT >= 30
 
     fun isEnabled(context: Context): Boolean {
         val enabled = Settings.Secure.getString(
@@ -75,24 +79,32 @@ object ScreenCapture {
         val app = context.applicationContext
         job?.cancel()
         return scope.launch {
-            if (Build.VERSION.SDK_INT < 30) {
-                Toast.makeText(app, R.string.capture_unsupported, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            val service = connect(app)
-            if (service == null) {
-                Toast.makeText(app, R.string.a11y_not_ready, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            if (delayMs > 0) {
-                // The models load while the shade or the assist gesture gets out of the way.
+            val launcher: Context
+            val bitmap: Bitmap?
+            if (Build.VERSION.SDK_INT >= 30) {
+                val service = connect(app)
+                if (service == null) {
+                    Toast.makeText(app, R.string.a11y_not_ready, Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                launcher = service
+                if (delayMs > 0) {
+                    // The models load while the shade or the assist gesture gets out of the way.
+                    OcrEngine.warmUp()
+                    delay(delayMs)
+                }
+                bitmap = retryOnce { service.capture() }
+            } else {
+                launcher = app
                 OcrEngine.warmUp()
-                delay(delayMs)
-            }
-            // The first screenshot right after the service binds can fail; one more try covers it.
-            val bitmap = service.capture() ?: run {
-                delay(CAPTURE_RETRY_MS)
-                service.capture()
+                if (!ProjectionCapture.isReady) {
+                    if (!ProjectionCapture.request(app)) return@launch
+                    // The shade is long gone by now; only the prompt has to fade out.
+                    delay(CONSENT_DISMISS_MS)
+                } else if (delayMs > 0) {
+                    delay(delayMs)
+                }
+                bitmap = retryOnce { ProjectionCapture.capture(app) }
             }
             if (bitmap == null) {
                 Toast.makeText(app, R.string.capture_failed, Toast.LENGTH_SHORT).show()
@@ -101,12 +113,19 @@ object ScreenCapture {
             // Dispatched rather than immediate, so the viewer is asked for before the models load.
             val reading = scope.async(Dispatchers.Main) { OcrEngine.read(bitmap) }
             CaptureHolder.put(CaptureHolder.Capture(bitmap, reading))
-            runCatching { service.startActivity(viewerIntent(app)) }.onFailure {
+            runCatching { launcher.startActivity(viewerIntent(app)) }.onFailure {
                 CaptureHolder.take()?.reading?.cancel()
                 OcrEngine.release()
             }
         }.also { job = it }
     }
+
+    /** The first screenshot right after the service binds can fail; one more try covers it. */
+    private suspend fun retryOnce(capture: suspend () -> Bitmap?): Bitmap? =
+        capture() ?: run {
+            delay(CAPTURE_RETRY_MS)
+            capture()
+        }
 
     /**
      * Loads the viewer's classes and the OCR libraries once the service binds, which after a
