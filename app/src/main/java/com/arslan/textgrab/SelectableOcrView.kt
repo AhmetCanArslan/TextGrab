@@ -476,9 +476,21 @@ class SelectableOcrView @JvmOverloads constructor(
             overlayTextPaint.textScaleX = styles[i].second
             val fm = overlayTextPaint.fontMetrics
             val baseline = box.centerY() - (fm.ascent + fm.descent) / 2f
-            canvas.drawText(text, box.left, baseline, overlayTextPaint)
+            // A right-to-left translation hugs the right edge, where its reader starts.
+            val rtl = isRtl(text)
+            overlayTextPaint.textAlign = if (rtl) Paint.Align.RIGHT else Paint.Align.LEFT
+            canvas.drawText(text, if (rtl) box.right else box.left, baseline, overlayTextPaint)
         }
         canvas.restore()
+    }
+
+    private fun isRtl(text: String): Boolean {
+        for (c in text) when (Character.getDirectionality(c)) {
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+            Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> return true
+            Character.DIRECTIONALITY_LEFT_TO_RIGHT -> return false
+        }
+        return false
     }
 
     private fun computeOverlayStyles(texts: List<String?>): List<Pair<Float, Float>> {
