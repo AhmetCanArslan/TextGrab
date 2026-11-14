@@ -61,13 +61,20 @@ object OcrEngine {
 
     class Reading(val result: Result, val codes: List<QrScanner.Code>)
 
-    private class Line(val box: RectF, val words: List<Pair<String, RectF>>, val blockId: Int)
+    private class Line(
+        val box: RectF,
+        val words: List<Pair<String, RectF>>,
+        val blockId: Int,
+        val confidence: Float,
+    )
 
     private class Scored(val lines: List<Line>, val score: Float, val meanConfidence: Float)
 
     private const val MIN_CONFIDENCE = 0.45f
 
     private const val LATIN_TRUSTED_CONFIDENCE = 0.8f
+
+    private const val UNKNOWN_CONFIDENCE = 0.7f
 
     private val cjkOptions = listOf(
         ChineseTextRecognizerOptions.Builder().build(),
@@ -103,6 +110,7 @@ object OcrEngine {
         releasePending = false
         latin?.close()
         latin = null
+        ArabicOcr.release()
         QrScanner.release()
     }
 
@@ -134,18 +142,55 @@ object OcrEngine {
     /** Lines centred inside [exclude] are dropped: the modules of a QR code read as junk text. */
     private suspend fun recognize(bitmap: Bitmap, exclude: suspend () -> List<RectF>): Result {
         val image = InputImage.fromBitmap(bitmap, 0)
-        var best = score(latin().run(image))
-
-        if (best.lines.isEmpty() || best.meanConfidence < LATIN_TRUSTED_CONFIDENCE) {
-            for (options in cjkOptions) {
-                val candidate = TextRecognition.getClient(options).use { score(it.run(image)) }
-                if (candidate.score > best.score) best = candidate
+        return coroutineScope {
+            // ML Kit drops Arabic script without a trace, so a screen of it cannot be told apart
+            // from an empty one. Read it alongside when asked to, or when ML Kit is unsure.
+            val always = ArabicOcr.isEnabled(App.instance)
+            val early = if (always) async { readArabic(bitmap) } else null
+            var best = score(latin().run(image))
+            var arabic = early
+            if (best.lines.isEmpty() || best.meanConfidence < LATIN_TRUSTED_CONFIDENCE) {
+                arabic = arabic ?: async { readArabic(bitmap) }
+                for (options in cjkOptions) {
+                    val candidate = TextRecognition.getClient(options).use { score(it.run(image)) }
+                    if (candidate.score > best.score) best = candidate
+                }
             }
+            val lines = merge(best.lines, arabic?.await().orEmpty())
+            val excluded = exclude()
+            buildResult(lines.filterNot { line ->
+                excluded.any { it.contains(line.box.centerX(), line.box.centerY()) }
+            })
         }
-        val excluded = exclude()
-        return buildResult(best.lines.filterNot { line ->
-            excluded.any { it.contains(line.box.centerX(), line.box.centerY()) }
-        })
+    }
+
+    private suspend fun readArabic(bitmap: Bitmap): List<ArabicOcr.Line> = try {
+        ArabicOcr.read(App.instance, bitmap)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        android.util.Log.w("TextGrab", "Arabic recognition failed", e)
+        emptyList()
+    }
+
+    /** Each region keeps whichever recognizer was surer of it, so mixed screens read both. */
+    private fun merge(lines: List<Line>, arabic: List<ArabicOcr.Line>): List<Line> {
+        if (arabic.isEmpty()) return lines
+        val kept = arabic.filter { a ->
+            lines.none { overlaps(it.box, a.box) && it.confidence >= a.confidence }
+        }
+        if (kept.isEmpty()) return lines
+        val blockBase = (lines.maxOfOrNull { it.blockId } ?: -1) + 1
+        return lines.filterNot { l -> kept.any { overlaps(l.box, it.box) } } +
+            kept.map { Line(it.box, it.words, blockBase + it.blockId, it.confidence) }
+    }
+
+    private fun overlaps(a: RectF, b: RectF): Boolean {
+        val w = min(a.right, b.right) - max(a.left, b.left)
+        val h = min(a.bottom, b.bottom) - max(a.top, b.top)
+        if (w <= 0f || h <= 0f) return false
+        val smaller = min(a.width() * a.height(), b.width() * b.height())
+        return w * h > 0.3f * smaller
     }
 
     private suspend fun TextRecognizer.run(image: InputImage): Text =
@@ -163,6 +208,7 @@ object OcrEngine {
         for ((blockId, block) in text.textBlocks.withIndex()) {
             for (line in block.lines) {
                 val words = ArrayList<Pair<String, RectF>>()
+                var lineConf = 0f
                 for (e in line.elements) {
                     val box = e.boundingBox ?: continue
                     val t = e.text.trim()
@@ -174,12 +220,13 @@ object OcrEngine {
                     }
                     if (isNoise(t, conf)) continue
                     words.add(t to RectF(box))
-                    score += t.count { it.isLetterOrDigit() } * (conf ?: 0.7f)
+                    lineConf += conf ?: UNKNOWN_CONFIDENCE
+                    score += t.count { it.isLetterOrDigit() } * (conf ?: UNKNOWN_CONFIDENCE)
                 }
                 if (words.isEmpty()) continue
 
                 val lineBox = RectF(words[0].second).apply { words.forEach { union(it.second) } }
-                lines.add(Line(lineBox, words, blockId))
+                lines.add(Line(lineBox, words, blockId, lineConf / words.size))
             }
         }
         val mean = if (confCount > 0) confSum / confCount else 1f
@@ -209,16 +256,34 @@ object OcrEngine {
         val lineBlocks = ArrayList<Int>()
         var lineId = 0
         rows.forEachIndexed { rowId, row ->
-            for (line in row.sortedBy { it.box.left }) {
+            // Right-to-left text reads from the right edge, both within a line and across a row.
+            val rtl = row.map { isRtl(it.words) }
+            val rowRtl = rtl.count { it } * 2 > row.size
+            val ordered = row.indices.sortedBy { if (rowRtl) -row[it].box.right else row[it].box.left }
+            for (i in ordered) {
+                val line = row[i]
                 lineBoxes.add(line.box)
                 lineBlocks.add(line.blockId)
-                for ((t, box) in line.words.sortedBy { it.second.left }) {
+                val inOrder = if (rtl[i]) line.words.sortedByDescending { it.second.right }
+                else line.words.sortedBy { it.second.left }
+                for ((t, box) in inOrder) {
                     words.add(Word(t, box, lineId, rowId))
                 }
                 lineId++
             }
         }
         return Result(words, lineBoxes, lineBlocks)
+    }
+
+    private fun isRtl(words: List<Pair<String, RectF>>): Boolean {
+        for ((t, _) in words) for (c in t) {
+            when (Character.getDirectionality(c)) {
+                Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+                Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> return true
+                Character.DIRECTIONALITY_LEFT_TO_RIGHT -> return false
+            }
+        }
+        return false
     }
 
     private fun sameRow(a: RectF, b: RectF): Boolean {
