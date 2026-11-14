@@ -103,4 +103,6 @@
     <string name="projection_active">Ekran yakalama hazır</string>
     <string name="projection_active_summary">Ekrandaki metni okumak için kutucuğa dokunun</string>
     <string name="projection_stop">Durdur</string>
+    <string name="arabic_title">Arap harflerini oku</string>
+    <string name="arabic_summary">Her yakalamada Arapça metni okur, biraz daha yavaş</string>
 </resources>

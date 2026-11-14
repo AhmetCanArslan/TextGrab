@@ -253,6 +253,39 @@
                 android:orientation="vertical">
 
                 <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/rowArabic"
+                    style="@style/ListItemCard"
+                    app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.First">
+
+                    <LinearLayout style="@style/ListItemRow">
+
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_text" />
+
+                        <LinearLayout style="@style/ListItemTextGroup">
+
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/arabic_title" />
+
+                            <TextView
+                                style="@style/ListItemSupportingText"
+                                android:text="@string/arabic_summary" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchArabic"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:importantForAccessibility="no" />
+                    </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
+
+                <com.google.android.material.listitem.ListItemCardView
                     android:id="@+id/hintRow"
                     style="@style/ListItemCard"
                     android:clickable="false"

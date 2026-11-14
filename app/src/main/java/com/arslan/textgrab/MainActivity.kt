@@ -157,9 +157,15 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.adbCameraCommand.text = adbCameraCommand
         binding.adbCameraRow.isVisible = binding.btnCamera.isVisible
         binding.adbCameraRow.setOnClickListener { copyToClipboard(adbCameraCommand) }
-        applySegmentShapes(binding.hintRow, binding.adbRow, binding.adbCameraRow)
+        applySegmentShapes(binding.rowArabic, binding.hintRow, binding.adbRow, binding.adbCameraRow)
 
         binding.rowTargetLanguage.setOnClickListener { chooseTargetLanguage() }
+        binding.switchArabic.isChecked = ArabicOcr.isEnabled(this)
+        binding.rowArabic.setOnClickListener {
+            val on = !binding.switchArabic.isChecked
+            binding.switchArabic.isChecked = on
+            ArabicOcr.setEnabled(this, on)
+        }
         binding.rowLanguagePacks.setOnClickListener {
             LanguagePacksSheet(this) { refreshTranslationRows() }.show()
         }

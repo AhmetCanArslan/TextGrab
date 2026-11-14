@@ -104,4 +104,6 @@
     <string name="projection_active">Screen capture is ready</string>
     <string name="projection_active_summary">Tap the tile to read text from the screen</string>
     <string name="projection_stop">Stop</string>
+    <string name="arabic_title">Read Arabic script</string>
+    <string name="arabic_summary">Reads Arabic text on every capture, a little more slowly</string>
 </resources>
