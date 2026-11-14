@@ -63,8 +63,13 @@ your own API key.
 
 ## Languages
 
-**Recognition:** Latin-script languages, Chinese, Japanese and Korean. Arabic,
+**Recognition:** Latin-script languages, Chinese, Japanese, Korean and Arabic.
 Cyrillic and Devanagari are not recognized yet.
+
+Arabic is read with Tesseract, since ML Kit cannot read it. It runs on every
+capture when **Read Arabic script** is on under *Tips & advanced*, which is the
+default when the phone's languages include Arabic, Persian or Urdu. Reading
+then takes a little longer.
 
 **Translation:** about 60 languages on device; cloud engines cover whatever
 the service supports.
@@ -88,3 +93,8 @@ name, `com.arslan.textgrab`, lets it install next to the original.
 The source code is under the [MIT License](LICENSE). The bundled ML Kit SDKs
 and models are proprietary Google software, used under the
 [ML Kit Terms of Service](https://developers.google.com/ml-kit/terms).
+Arabic recognition uses [Tesseract](https://github.com/tesseract-ocr/tesseract)
+through [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android)
+and the `ara` model from
+[tessdata_fast](https://github.com/tesseract-ocr/tessdata_fast), all under the
+Apache License 2.0.
