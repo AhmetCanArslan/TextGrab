@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ToolbarIconButton" parent="Widget.Material3Expressive.Button.IconButton.Standard" />
+    <style name="HomeButtonSize" parent="SizeOverlay.Material3Expressive.Button.Medium" />
+</resources>

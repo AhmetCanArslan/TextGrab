@@ -114,7 +114,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            val base = (24 * resources.displayMetrics.density).toInt()
+            val base = resources.getDimensionPixelSize(R.dimen.home_top_space)
             binding.homeGroup.updatePadding(top = base + bars.top, bottom = base + bars.bottom)
             insets
         }

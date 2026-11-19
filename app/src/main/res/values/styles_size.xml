@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Six of these must fit across a 360dp screen. -->
+    <style name="ToolbarIconButton" parent="Widget.Material3Expressive.Button.IconButton.Standard">
+        <item name="materialSizeOverlay">@style/SizeOverlay.Material3Expressive.Button.IconButton.Xsmall</item>
+    </style>
+    <style name="HomeButtonSize" parent="SizeOverlay.Material3Expressive.Button.Small" />
+</resources>

@@ -11,7 +11,7 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="@dimen/home_gutter">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -29,8 +29,8 @@
                 android:paddingVertical="8dp">
 
                 <ImageView
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="@dimen/home_logo"
+                    android:layout_height="@dimen/home_logo"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_tile"
                     app:tint="?attr/colorPrimary" />
@@ -38,7 +38,7 @@
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
+                    android:layout_marginStart="@dimen/home_logo_gap"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
@@ -70,7 +70,7 @@
                     android:text="@string/pick_image"
                     app:icon="@drawable/ic_image"
                     app:iconGravity="textStart"
-                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
+                    app:materialSizeOverlay="@style/HomeButtonSize" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCamera"
@@ -80,7 +80,7 @@
                     android:text="@string/camera"
                     app:icon="@drawable/ic_camera"
                     app:iconGravity="textStart"
-                    app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.Medium" />
+                    app:materialSizeOverlay="@style/HomeButtonSize" />
             </com.google.android.material.button.MaterialButtonGroup>
 
             <TextView
@@ -400,7 +400,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|center_horizontal"
-            android:layout_margin="8dp"
+            android:layout_margin="@dimen/toolbar_margin"
             app:marginLeftSystemWindowInsets="true"
             app:marginRightSystemWindowInsets="true"
             app:marginTopSystemWindowInsets="true">
@@ -413,7 +413,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnBack"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/back"
@@ -421,7 +421,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSelectAll"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/select_all"
@@ -429,7 +429,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnTextMode"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/view_as_text"
@@ -437,7 +437,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnTranslateAll"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checkable="true"
@@ -446,7 +446,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCopyAll"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/copy_all"
@@ -454,7 +454,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnShareAll"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/share"
@@ -504,7 +504,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbarShare"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/share"
@@ -512,7 +512,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/toolbarSearch"
-                    style="?attr/materialIconButtonStyle"
+                    style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:contentDescription="@string/search_web"

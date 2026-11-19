@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="home_gutter">16dp</dimen>
+    <dimen name="home_logo">44dp</dimen>
+    <dimen name="home_logo_gap">14dp</dimen>
+    <dimen name="home_top_space">24dp</dimen>
+    <dimen name="section_top">24dp</dimen>
+    <dimen name="list_row_min_height">56dp</dimen>
+    <dimen name="list_text_gap">16dp</dimen>
+    <dimen name="sheet_gutter">24dp</dimen>
+    <dimen name="toolbar_margin">8dp</dimen>
+</resources>

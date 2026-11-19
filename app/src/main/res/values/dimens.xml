@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compact sizes for narrow phones (360dp); values-w400dp restores the roomier ones. -->
+<resources>
+    <dimen name="home_gutter">12dp</dimen>
+    <dimen name="home_logo">36dp</dimen>
+    <dimen name="home_logo_gap">12dp</dimen>
+    <dimen name="home_top_space">16dp</dimen>
+    <dimen name="section_top">16dp</dimen>
+    <dimen name="list_row_min_height">52dp</dimen>
+    <dimen name="list_text_gap">12dp</dimen>
+    <dimen name="sheet_gutter">16dp</dimen>
+    <dimen name="toolbar_margin">4dp</dimen>
+</resources>
