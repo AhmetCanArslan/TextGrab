@@ -76,6 +76,10 @@ object OcrEngine {
 
     private const val UNKNOWN_CONFIDENCE = 0.7f
 
+    private const val SHORT_CONFIDENCE = 0.8f
+
+    private const val SURE_CONFIDENCE = 0.9f
+
     private val cjkOptions = listOf(
         ChineseTextRecognizerOptions.Builder().build(),
         JapaneseTextRecognizerOptions.Builder().build(),
@@ -224,6 +228,7 @@ object OcrEngine {
                     score += t.count { it.isLetterOrDigit() } * (conf ?: UNKNOWN_CONFIDENCE)
                 }
                 if (words.isEmpty()) continue
+                if (isIconRow(words, lineConf / words.size)) continue
 
                 val lineBox = RectF(words[0].second).apply { words.forEach { union(it.second) } }
                 lines.add(Line(lineBox, words, blockId, lineConf / words.size))
@@ -235,14 +240,19 @@ object OcrEngine {
 
     private fun isNoise(t: String, conf: Float?): Boolean {
         if (t.isEmpty()) return true
-        if (conf != null && conf < MIN_CONFIDENCE) return true
+        val c = conf ?: UNKNOWN_CONFIDENCE
+        if (c < MIN_CONFIDENCE) return true
         val letters = t.count { it.isLetterOrDigit() }
 
-        if (letters == 0 && t.length <= 2) return true
-
-        if (t.length == 1 && conf != null && conf < 0.7f) return true
+        // Icons come back as symbol runs or a stray glyph or two, read without much certainty.
+        if (letters * 2 < t.length && c < SURE_CONFIDENCE) return true
+        if (t.length <= 2 && c < SHORT_CONFIDENCE) return true
         return false
     }
+
+    /** A row of icons reads as several short, uncertain tokens; real text rarely does. */
+    private fun isIconRow(words: List<Pair<String, RectF>>, confidence: Float): Boolean =
+        confidence < SHORT_CONFIDENCE && words.all { it.first.count(Char::isLetterOrDigit) <= 2 }
 
     private fun buildResult(lines: List<Line>): Result {
         val byTop = lines.sortedBy { it.box.centerY() }
