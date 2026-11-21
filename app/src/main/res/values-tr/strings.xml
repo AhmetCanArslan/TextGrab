@@ -105,4 +105,10 @@
     <string name="projection_stop">Durdur</string>
     <string name="arabic_title">Arap harflerini oku</string>
     <string name="arabic_summary">Her yakalamada Arapça metni okur, biraz daha yavaş</string>
+    <string name="region_mode">Alan yakala</string>
+    <string name="region_hint">Saklamak istediğin yerin etrafını çiz</string>
+    <string name="region_preview">Seçilen alan</string>
+    <string name="save">Kaydet</string>
+    <string name="region_saved">Resimler klasörüne kaydedildi</string>
+    <string name="region_save_failed">Görsel kaydedilemedi</string>
 </resources>

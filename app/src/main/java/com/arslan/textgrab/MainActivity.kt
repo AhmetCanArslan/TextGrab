@@ -4,6 +4,17 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
+import android.content.pm.PackageManager
+import android.graphics.Rect
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.ImageView
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.RectF
@@ -70,6 +81,17 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     private val pickImage =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) openImage(uri)
+        }
+
+    /** A cropped region waiting on the storage permission before it can be saved. */
+    private var pendingSave: Bitmap? = null
+
+    private val requestStorage =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val shot = pendingSave
+            pendingSave = null
+            if (granted && shot != null) saveRegion(shot)
+            else if (shot != null) Snackbar.make(binding.root, R.string.region_save_failed, Snackbar.LENGTH_SHORT).show()
         }
 
     private val cameraFile by lazy { CameraActivity.photoFile(this) }
@@ -182,6 +204,10 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             currentResult?.fullText?.takeIf { it.isNotBlank() }?.let { shareText(it) }
         }
         binding.btnTextMode.setOnClickListener { showTextSheet() }
+        binding.btnRegion.addOnCheckedChangeListener { _, checked ->
+            binding.ocrView.regionMode = checked
+            if (checked) Snackbar.make(binding.root, R.string.region_hint, Snackbar.LENGTH_SHORT).show()
+        }
         binding.btnTranslateAll.setOnClickListener {
             if (binding.ocrView.translations != null) resetTranslation() else translateScreen()
         }
@@ -202,6 +228,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
         onBackPressedDispatcher.addCallback(this) {
             when {
+                binding.btnRegion.isChecked -> binding.btnRegion.isChecked = false
                 binding.ocrView.hasSelection() -> binding.ocrView.clearSelection()
                 binding.viewerGroup.isVisible -> onBackFromViewer()
                 else -> closeScreen()
@@ -507,6 +534,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     private fun clearViewerContent() {
+        binding.btnRegion.isChecked = false
         ocrJob?.cancel()
         ocrJob = null
         resetTranslation()
@@ -589,6 +617,98 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
 
         toolbar.translationX = x
         toolbar.translationY = y
+    }
+
+    override fun onRegionSelected(region: Rect) {
+        val source = currentBitmap ?: return
+        val shot = Bitmap.createBitmap(source, region.left, region.top, region.width(), region.height())
+        binding.btnRegion.isChecked = false
+        val sheet = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.sheet_region, null)
+        view.findViewById<ImageView>(R.id.regionPreview).setImageBitmap(shot)
+        view.findViewById<View>(R.id.regionShare).setOnClickListener {
+            shareRegion(shot)
+            sheet.dismiss()
+        }
+        view.findViewById<View>(R.id.regionSave).setOnClickListener {
+            if (Build.VERSION.SDK_INT < 29 && ContextCompat.checkSelfPermission(
+                    this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                pendingSave = shot
+                requestStorage.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                saveRegion(shot)
+            }
+            sheet.dismiss()
+        }
+        sheet.setContentView(view)
+        sheet.show()
+    }
+
+    private fun shareRegion(shot: Bitmap) {
+        lifecycleScope.launch {
+            val uri = withContext(Dispatchers.IO) {
+                val dir = File(cacheDir, "shots").apply { mkdirs() }
+                dir.listFiles()?.forEach { it.delete() }
+                val file = File(dir, "TextGrab_${System.currentTimeMillis()}.png")
+                file.outputStream().use { shot.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                FileProvider.getUriForFile(this@MainActivity, "$packageName.files", file)
+            }
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = ClipData.newRawUri(null, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(send, null))
+        }
+    }
+
+    private fun saveRegion(shot: Bitmap) {
+        lifecycleScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                runCatching { writeToGallery(shot) }
+                    .onFailure { android.util.Log.w("TextGrab", "Saving region failed", it) }
+                    .isSuccess
+            }
+            Snackbar.make(
+                binding.root,
+                if (saved) R.string.region_saved else R.string.region_save_failed,
+                Snackbar.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun writeToGallery(shot: Bitmap) {
+        val name = "TextGrab_${System.currentTimeMillis()}.png"
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, name)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            if (Build.VERSION.SDK_INT >= 29) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/TextGrab")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "TextGrab"
+                ).apply { mkdirs() }
+                @Suppress("DEPRECATION")
+                put(MediaStore.Images.Media.DATA, File(dir, name).absolutePath)
+            }
+        }
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            ?: error("MediaStore refused the image")
+        try {
+            contentResolver.openOutputStream(uri)?.use { shot.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                ?: error("No output stream")
+            if (Build.VERSION.SDK_INT >= 29) {
+                contentResolver.update(uri, ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }, null, null)
+            }
+        } catch (e: Exception) {
+            contentResolver.delete(uri, null, null)
+            throw e
+        }
     }
 
     private fun copyToClipboard(text: String) {

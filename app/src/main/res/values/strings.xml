@@ -106,4 +106,10 @@
     <string name="projection_stop">Stop</string>
     <string name="arabic_title">Read Arabic script</string>
     <string name="arabic_summary">Reads Arabic text on every capture, a little more slowly</string>
+    <string name="region_mode">Capture a region</string>
+    <string name="region_hint">Draw around what you want to keep</string>
+    <string name="region_preview">Selected region</string>
+    <string name="save">Save</string>
+    <string name="region_saved">Saved to Pictures</string>
+    <string name="region_save_failed">Could not save the image</string>
 </resources>

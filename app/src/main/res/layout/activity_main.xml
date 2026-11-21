@@ -437,6 +437,15 @@
                     app:icon="@drawable/ic_text" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRegion"
+                    style="@style/ToolbarIconButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:contentDescription="@string/region_mode"
+                    app:icon="@drawable/ic_crop" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnTranslateAll"
                     style="@style/ToolbarIconButton"
                     android:layout_width="wrap_content"

@@ -11,6 +11,7 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.os.Build
 import android.util.AttributeSet
@@ -36,7 +37,25 @@ class SelectableOcrView @JvmOverloads constructor(
         fun onSelectionChanged(text: String?, anchor: RectF?)
 
         fun onCodeTapped(code: QrScanner.Code)
+
+        /** The bounding box, in bitmap pixels, of a shape the user drew in region mode. */
+        fun onRegionSelected(region: Rect) {}
     }
+
+    /** While on, a finger draw marks a region of the image instead of selecting text. */
+    var regionMode = false
+        set(value) {
+            if (field == value) return
+            field = value
+            regionPath.rewind()
+            regionDrawing = false
+            if (value) clearSelection()
+            invalidate()
+        }
+
+    private val regionPath = Path()
+    private val regionBounds = RectF()
+    private var regionDrawing = false
 
     var listener: Listener? = null
 
@@ -154,6 +173,19 @@ class SelectableOcrView @JvmOverloads constructor(
         )
     }
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val regionDimPaint = Paint().apply { color = Color.argb(REGION_DIM_ALPHA, 0, 0, 0) }
+    private val regionStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = accentColor
+        style = Paint.Style.STROKE
+        strokeWidth = dp(3f)
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val regionFrame = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = dp(1.5f)
+    }
     private val clipPath = Path()
     private val tmpRect = RectF()
 
@@ -438,6 +470,11 @@ class SelectableOcrView @JvmOverloads constructor(
             post { if (captureProgress < 1f) animateCaptureTo(1f, EMPHASIZED_DECELERATE) }
         }
 
+        if (regionMode) {
+            drawRegion(canvas)
+            return
+        }
+
         val r = result ?: return
         drawCodes(canvas)
         val t = drawnTranslations
@@ -447,6 +484,63 @@ class SelectableOcrView @JvmOverloads constructor(
             drawTranslations(canvas, r, t, colors, styles)
             if (selStart != -1) drawSelection(canvas, r)
         } else if (selStart == -1) drawHints(canvas, r) else drawSelection(canvas, r)
+    }
+
+    private fun drawRegion(canvas: Canvas) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        if (!regionDrawing) {
+            canvas.drawRect(0f, 0f, w, h, regionDimPaint)
+            return
+        }
+        regionPath.computeBounds(regionBounds, true)
+        val b = regionBounds
+        // Dim everything but the box that will be cut out, so the result is visible while drawing.
+        canvas.drawRect(0f, 0f, w, b.top, regionDimPaint)
+        canvas.drawRect(0f, b.bottom, w, h, regionDimPaint)
+        canvas.drawRect(0f, b.top, b.left, b.bottom, regionDimPaint)
+        canvas.drawRect(b.right, b.top, w, b.bottom, regionDimPaint)
+        canvas.drawRect(b, regionFrame)
+        canvas.drawPath(regionPath, regionStroke)
+    }
+
+    private fun onRegionTouch(event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                regionPath.rewind()
+                regionPath.moveTo(event.x, event.y)
+                regionDrawing = true
+                parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            MotionEvent.ACTION_MOVE -> if (regionDrawing) {
+                for (i in 0 until event.historySize) {
+                    regionPath.lineTo(event.getHistoricalX(i), event.getHistoricalY(i))
+                }
+                regionPath.lineTo(event.x, event.y)
+            }
+            MotionEvent.ACTION_UP -> if (regionDrawing) {
+                regionPath.computeBounds(regionBounds, true)
+                regionDrawing = false
+                regionPath.rewind()
+                bitmapRegion(regionBounds)?.let { listener?.onRegionSelected(it) }
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                regionDrawing = false
+                regionPath.rewind()
+            }
+        }
+        invalidate()
+    }
+
+    /** [viewBox] in bitmap pixels, clipped to the image; null when it is too small to mean anything. */
+    private fun bitmapRegion(viewBox: RectF): Rect? {
+        val bmp = bitmap ?: return null
+        if (viewBox.width() < dp(MIN_REGION_DP) || viewBox.height() < dp(MIN_REGION_DP)) return null
+        val mapped = RectF(viewBox).also { inverseMatrix.mapRect(it) }
+        val out = Rect()
+        mapped.roundOut(out)
+        if (!out.intersect(0, 0, bmp.width, bmp.height) || out.width() < 2 || out.height() < 2) return null
+        return out
     }
 
     private fun drawTranslations(
@@ -713,6 +807,20 @@ class SelectableOcrView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
 
         if (isAnimatingCapture) return true
+        if (regionMode) {
+            if (event.pointerCount == 1) {
+                onRegionTouch(event)
+            } else {
+                // A second finger means a pinch: drop the stroke and let the image zoom.
+                if (regionDrawing) {
+                    regionDrawing = false
+                    regionPath.rewind()
+                    invalidate()
+                }
+                scaleDetector.onTouchEvent(event)
+            }
+            return true
+        }
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -845,6 +953,8 @@ class SelectableOcrView @JvmOverloads constructor(
     companion object {
         private const val SELECTION_ALPHA = 0x66
         private const val CODE_FILL_ALPHA = 0x33
+        private const val REGION_DIM_ALPHA = 0x80
+        private const val MIN_REGION_DP = 24f
 
 
         const val CAPTURE_TRANSITION_MS = 420f

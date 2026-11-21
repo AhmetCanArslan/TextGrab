@@ -71,4 +71,10 @@
     <string name="projection_stop">Beenden</string>
     <string name="arabic_title">Arabische Schrift lesen</string>
     <string name="arabic_summary">Liest arabischen Text bei jeder Aufnahme, etwas langsamer</string>
+    <string name="region_mode">Bereich aufnehmen</string>
+    <string name="region_hint">Umkreise, was du behalten möchtest</string>
+    <string name="region_preview">Ausgewählter Bereich</string>
+    <string name="save">Speichern</string>
+    <string name="region_saved">In „Bilder“ gespeichert</string>
+    <string name="region_save_failed">Bild konnte nicht gespeichert werden</string>
 </resources>
