@@ -77,4 +77,7 @@
     <string name="save">Speichern</string>
     <string name="region_saved">In „Bilder“ gespeichert</string>
     <string name="region_save_failed">Bild konnte nicht gespeichert werden</string>
+    <string name="section_support">Unterstützen</string>
+    <string name="donate">Spendier mir einen Kaffee</string>
+    <string name="donate_summary">Hilf, TextGrab kostenlos und werbefrei zu halten</string>
 </resources>

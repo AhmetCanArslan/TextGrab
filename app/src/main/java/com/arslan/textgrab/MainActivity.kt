@@ -195,6 +195,9 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
             TranslationEngineSheet(this) { refreshTranslationRows() }.show()
         }
 
+        binding.rowDonate.setOnClickListener {
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.buymeacoffee_url)))) }
+        }
         binding.btnBack.setOnClickListener { onBackFromViewer() }
         binding.btnSelectAll.setOnClickListener { binding.ocrView.selectAll() }
         binding.btnCopyAll.setOnClickListener {

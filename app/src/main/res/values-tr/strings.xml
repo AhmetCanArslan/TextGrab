@@ -111,4 +111,7 @@
     <string name="save">Kaydet</string>
     <string name="region_saved">Resimler klasörüne kaydedildi</string>
     <string name="region_save_failed">Görsel kaydedilemedi</string>
+    <string name="section_support">Destek</string>
+    <string name="donate">Bana bir kahve ısmarla</string>
+    <string name="donate_summary">TextGrab\'ın ücretsiz ve reklamsız kalmasına destek ol</string>
 </resources>

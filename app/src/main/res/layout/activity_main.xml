@@ -372,6 +372,38 @@
             </LinearLayout>
 
             <TextView
+                style="@style/HomeSectionHeader"
+                android:text="@string/section_support" />
+
+            <com.google.android.material.listitem.ListItemCardView
+                android:id="@+id/rowDonate"
+                style="@style/ListItemCard"
+                app:shapeAppearance="@style/ShapeAppearance.Material3.ListItem.Single">
+
+                <LinearLayout style="@style/ListItemRow">
+
+                    <ImageView
+                        style="@style/ListItemLeadingIcon"
+                        android:src="@drawable/ic_coffee" />
+
+                    <LinearLayout style="@style/ListItemTextGroup">
+
+                        <TextView
+                            style="@style/ListItemLabel"
+                            android:text="@string/donate" />
+
+                        <TextView
+                            style="@style/ListItemSupportingText"
+                            android:text="@string/donate_summary" />
+                    </LinearLayout>
+
+                    <ImageView
+                        style="@style/ListItemTrailingIcon"
+                        android:src="@drawable/ic_chevron_right" />
+                </LinearLayout>
+            </com.google.android.material.listitem.ListItemCardView>
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"

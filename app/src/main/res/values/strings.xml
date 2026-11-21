@@ -112,4 +112,8 @@
     <string name="save">Save</string>
     <string name="region_saved">Saved to Pictures</string>
     <string name="region_save_failed">Could not save the image</string>
+    <string name="section_support">Support</string>
+    <string name="donate">Buy me a coffee</string>
+    <string name="donate_summary">Help keep TextGrab free and ad-free</string>
+    <string name="buymeacoffee_url" translatable="false">https://buymeacoffee.com/ahmetcanarslan</string>
 </resources>
