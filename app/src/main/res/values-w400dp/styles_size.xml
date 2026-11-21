@@ -2,4 +2,8 @@
 <resources>
     <style name="ToolbarIconButton" parent="Widget.Material3Expressive.Button.IconButton.Standard" />
     <style name="HomeButtonSize" parent="SizeOverlay.Material3Expressive.Button.Medium" />
+    <style name="HomeTitleText" parent="TextAppearance.Material3.HeadlineSmall" />
+    <style name="HomeTaglineText" parent="TextAppearance.Material3.BodyMedium" />
+    <style name="ListLabelText" parent="TextAppearance.Material3.BodyLarge" />
+    <style name="ListSupportingText" parent="TextAppearance.Material3.BodyMedium" />
 </resources>

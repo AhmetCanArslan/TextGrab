@@ -10,4 +10,6 @@
     <dimen name="list_text_gap">12dp</dimen>
     <dimen name="sheet_gutter">16dp</dimen>
     <dimen name="toolbar_margin">4dp</dimen>
+    <dimen name="home_button_spacing">6dp</dimen>
+    <dimen name="list_icon">20dp</dimen>
 </resources>

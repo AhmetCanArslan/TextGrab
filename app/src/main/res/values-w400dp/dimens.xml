@@ -9,4 +9,6 @@
     <dimen name="list_text_gap">16dp</dimen>
     <dimen name="sheet_gutter">24dp</dimen>
     <dimen name="toolbar_margin">8dp</dimen>
+    <dimen name="home_button_spacing">12dp</dimen>
+    <dimen name="list_icon">24dp</dimen>
 </resources>

@@ -43,13 +43,13 @@
     </style>
 
     <style name="ListItemLeadingIcon" parent="Widget.Material3.ImageView.ListItem.LeadingIcon">
-        <item name="android:layout_width">24dp</item>
-        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_width">@dimen/list_icon</item>
+        <item name="android:layout_height">@dimen/list_icon</item>
     </style>
 
     <style name="ListItemTrailingIcon" parent="Widget.Material3.ImageView.ListItem.TrailingIcon">
-        <item name="android:layout_width">24dp</item>
-        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_width">@dimen/list_icon</item>
+        <item name="android:layout_height">@dimen/list_icon</item>
         <item name="android:layout_marginStart">8dp</item>
     </style>
 
@@ -64,10 +64,12 @@
     <style name="ListItemLabel" parent="Widget.Material3.TextView.ListItem.LabelText">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">@style/ListLabelText</item>
     </style>
 
     <style name="ListItemSupportingText" parent="Widget.Material3.TextView.ListItem.SupportingText">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">@style/ListSupportingText</item>
     </style>
 </resources>

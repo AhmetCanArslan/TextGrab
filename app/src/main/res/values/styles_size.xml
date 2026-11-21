@@ -4,5 +4,9 @@
     <style name="ToolbarIconButton" parent="Widget.Material3Expressive.Button.IconButton.Standard">
         <item name="materialSizeOverlay">@style/SizeOverlay.Material3Expressive.Button.IconButton.Xsmall</item>
     </style>
-    <style name="HomeButtonSize" parent="SizeOverlay.Material3Expressive.Button.Small" />
+    <style name="HomeButtonSize" parent="SizeOverlay.Material3Expressive.Button.Xsmall" />
+    <style name="HomeTitleText" parent="TextAppearance.Material3.TitleLarge" />
+    <style name="HomeTaglineText" parent="TextAppearance.Material3.BodySmall" />
+    <style name="ListLabelText" parent="TextAppearance.Material3.BodyMedium" />
+    <style name="ListSupportingText" parent="TextAppearance.Material3.BodySmall" />
 </resources>
