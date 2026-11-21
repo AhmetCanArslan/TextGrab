@@ -15,6 +15,12 @@ Download the latest APK from
 Android 8.0. Before Android 11, screen capture asks for the system's capture
 permission on first use and shows a notification while it is on.
 
+<p align="center">
+  <a href="https://www.buymeacoffee.com/ahmetcanarslan">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="220" />
+  </a>
+</p>
+
 ## Setup
 
 Only screen capture needs setup; the home screen lists what is still missing.
