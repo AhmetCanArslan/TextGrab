@@ -20,6 +20,9 @@ object ArabicOcr {
     /** A line Tesseract is less sure of than this is almost always Latin or CJK read as Arabic. */
     private const val MIN_LINE_CONFIDENCE = 0.6f
 
+    /** Below this a line must be almost purely Arabic letters to count. */
+    private const val SURE_LINE_CONFIDENCE = 0.8f
+
     private const val MIN_WORD_CONFIDENCE = 0.3f
 
     private const val PREFS = "recognition"
@@ -138,6 +141,11 @@ object ArabicOcr {
         val letters = text.count { it.isLetter() }
         // Mostly Arabic letters, or Tesseract is reading another script with the wrong model.
         if (letters == 0 || text.count(::isArabic) * 2 < letters) return null
+        // Icons read as a few Arabic glyphs mixed with digits and symbols.
+        val arabic = text.count(::isArabic)
+        val purity = if (confidence < SURE_LINE_CONFIDENCE) 0.9f else 0.7f
+        if (arabic < 2 || arabic < purity * text.length) return null
+        if (words.none { w -> w.first.count(::isArabic) >= 3 }) return null
         val box = RectF(words[0].second).apply { words.forEach { union(it.second) } }
         return Line(box, words, block, confidence)
     }
