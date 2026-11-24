@@ -13,7 +13,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 
 object MlKitEngine : TranslationEngine {
@@ -42,6 +44,7 @@ object MlKitEngine : TranslationEngine {
                         .setSourceLanguage(source).setTargetLanguage(target).build()
                 ).also { it.downloadModelIfNeeded(DownloadConditions.Builder().build()).await() }
             }
+            warmUp(clients.values)
             val gate = Semaphore(MAX_PARALLEL)
             return coroutineScope {
                 request.texts.mapIndexed { i, text ->
@@ -54,6 +57,19 @@ object MlKitEngine : TranslationEngine {
             }
         } finally {
             clients.values.forEach { it.close() }
+        }
+    }
+
+    private val warmLock = Mutex()
+    @Volatile private var warmed = false
+
+    // The native lib aborts if two translators run their first init at once.
+    private suspend fun warmUp(clients: Collection<MlTranslator>) {
+        if (warmed || clients.size < 2) return
+        warmLock.withLock {
+            if (warmed) return
+            clients.first().translate("a").await()
+            warmed = true
         }
     }
 
