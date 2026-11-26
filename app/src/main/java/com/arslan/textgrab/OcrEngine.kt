@@ -68,7 +68,13 @@ object OcrEngine {
         val confidence: Float,
     )
 
-    private class Scored(val lines: List<Line>, val score: Float, val meanConfidence: Float)
+    /** [doubtful]: a word of real length read without confidence, the mark of a script ML Kit lacks. */
+    private class Scored(
+        val lines: List<Line>,
+        val score: Float,
+        val meanConfidence: Float,
+        val doubtful: Boolean,
+    )
 
     private const val MIN_CONFIDENCE = 0.45f
 
@@ -79,6 +85,11 @@ object OcrEngine {
     private const val SHORT_CONFIDENCE = 0.8f
 
     private const val SURE_CONFIDENCE = 0.9f
+
+    /** How much surer ML Kit must be to keep a region a script reader also read. */
+    private const val SCRIPT_MARGIN = 0.1f
+
+    private const val DOUBTFUL_LETTERS = 3
 
     private val cjkOptions = listOf(
         ChineseTextRecognizerOptions.Builder().build(),
@@ -114,7 +125,7 @@ object OcrEngine {
         releasePending = false
         latin?.close()
         latin = null
-        ArabicOcr.release()
+        ScriptOcr.all.forEach { it.release() }
         QrScanner.release()
     }
 
@@ -147,20 +158,26 @@ object OcrEngine {
     private suspend fun recognize(bitmap: Bitmap, exclude: suspend () -> List<RectF>): Result {
         val image = InputImage.fromBitmap(bitmap, 0)
         return coroutineScope {
-            // ML Kit drops Arabic script without a trace, so a screen of it cannot be told apart
-            // from an empty one. Read it alongside when asked to, or when ML Kit is unsure.
-            val always = ArabicOcr.isEnabled(App.instance)
-            val early = if (always) async { readArabic(bitmap) } else null
+            // ML Kit drops Arabic without a trace and reads Cyrillic as Latin look-alikes, so
+            // neither can be told apart from a clean read. Read them alongside when asked to,
+            // or when ML Kit is unsure of anything word-sized.
+            val scripts = ScriptOcr.all.associateWith { script ->
+                if (script.isEnabled(App.instance)) async { readScript(script, bitmap) } else null
+            }.toMutableMap()
             var best = score(latin().run(image))
-            var arabic = early
+            if (best.lines.isEmpty() || best.doubtful || best.meanConfidence < LATIN_TRUSTED_CONFIDENCE) {
+                for ((script, job) in scripts) {
+                    if (job == null) scripts[script] = async { readScript(script, bitmap) }
+                }
+            }
             if (best.lines.isEmpty() || best.meanConfidence < LATIN_TRUSTED_CONFIDENCE) {
-                arabic = arabic ?: async { readArabic(bitmap) }
                 for (options in cjkOptions) {
                     val candidate = TextRecognition.getClient(options).use { score(it.run(image)) }
                     if (candidate.score > best.score) best = candidate
                 }
             }
-            val lines = merge(best.lines, arabic?.await().orEmpty())
+            var lines = best.lines
+            for (job in scripts.values) lines = merge(lines, job?.await().orEmpty())
             val excluded = exclude()
             buildResult(lines.filterNot { line ->
                 excluded.any { it.contains(line.box.centerX(), line.box.centerY()) }
@@ -168,20 +185,22 @@ object OcrEngine {
         }
     }
 
-    private suspend fun readArabic(bitmap: Bitmap): List<ArabicOcr.Line> = try {
-        ArabicOcr.read(App.instance, bitmap)
+    private suspend fun readScript(script: ScriptOcr, bitmap: Bitmap): List<ScriptOcr.Line> = try {
+        script.read(App.instance, bitmap)
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        android.util.Log.w("TextGrab", "Arabic recognition failed", e)
+        android.util.Log.w("TextGrab", "Script recognition failed", e)
         emptyList()
     }
 
     /** Each region keeps whichever recognizer was surer of it, so mixed screens read both. */
-    private fun merge(lines: List<Line>, arabic: List<ArabicOcr.Line>): List<Line> {
-        if (arabic.isEmpty()) return lines
-        val kept = arabic.filter { a ->
-            lines.none { overlaps(it.box, a.box) && it.confidence >= a.confidence }
+    private fun merge(lines: List<Line>, script: List<ScriptOcr.Line>): List<Line> {
+        if (script.isEmpty()) return lines
+        // A script reader only keeps lines that are mostly its own letters, so where it does
+        // it gets the benefit of the doubt over ML Kit's look-alike reading.
+        val kept = script.filter { a ->
+            lines.none { overlaps(it.box, a.box) && it.confidence >= a.confidence + SCRIPT_MARGIN }
         }
         if (kept.isEmpty()) return lines
         val blockBase = (lines.maxOfOrNull { it.blockId } ?: -1) + 1
@@ -209,6 +228,7 @@ object OcrEngine {
         var score = 0f
         var confSum = 0f
         var confCount = 0
+        var doubtful = false
         for ((blockId, block) in text.textBlocks.withIndex()) {
             for (line in block.lines) {
                 val words = ArrayList<Pair<String, RectF>>()
@@ -222,6 +242,9 @@ object OcrEngine {
                         confSum += conf
                         confCount++
                     }
+                    if ((conf ?: UNKNOWN_CONFIDENCE) < LATIN_TRUSTED_CONFIDENCE &&
+                        t.count { it.isLetter() } >= DOUBTFUL_LETTERS
+                    ) doubtful = true
                     if (isNoise(t, conf)) continue
                     words.add(t to RectF(box))
                     lineConf += conf ?: UNKNOWN_CONFIDENCE
@@ -235,7 +258,7 @@ object OcrEngine {
             }
         }
         val mean = if (confCount > 0) confSum / confCount else 1f
-        return Scored(lines, score, mean)
+        return Scored(lines, score, mean, doubtful)
     }
 
     private fun isNoise(t: String, conf: Float?): Boolean {

@@ -287,6 +287,38 @@
                 </com.google.android.material.listitem.ListItemCardView>
 
                 <com.google.android.material.listitem.ListItemCardView
+                    android:id="@+id/rowCyrillic"
+                    style="@style/ListItemCard">
+
+                    <LinearLayout style="@style/ListItemRow">
+
+                        <ImageView
+                            style="@style/ListItemLeadingIcon"
+                            android:src="@drawable/ic_text" />
+
+                        <LinearLayout style="@style/ListItemTextGroup">
+
+                            <TextView
+                                style="@style/ListItemLabel"
+                                android:text="@string/cyrillic_title" />
+
+                            <TextView
+                                style="@style/ListItemSupportingText"
+                                android:text="@string/cyrillic_summary" />
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchCyrillic"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:clickable="false"
+                            android:focusable="false"
+                            android:importantForAccessibility="no" />
+                    </LinearLayout>
+                </com.google.android.material.listitem.ListItemCardView>
+
+                <com.google.android.material.listitem.ListItemCardView
                     android:id="@+id/hintRow"
                     style="@style/ListItemCard"
                     android:clickable="false"

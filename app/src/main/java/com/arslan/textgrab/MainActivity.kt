@@ -22,6 +22,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import com.google.android.material.materialswitch.MaterialSwitch
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
@@ -179,15 +180,11 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
         binding.adbCameraCommand.text = adbCameraCommand
         binding.adbCameraRow.isVisible = binding.btnCamera.isVisible
         binding.adbCameraRow.setOnClickListener { copyToClipboard(adbCameraCommand) }
-        applySegmentShapes(binding.rowArabic, binding.hintRow, binding.adbRow, binding.adbCameraRow)
+        applySegmentShapes(binding.rowArabic, binding.rowCyrillic, binding.hintRow, binding.adbRow, binding.adbCameraRow)
 
         binding.rowTargetLanguage.setOnClickListener { chooseTargetLanguage() }
-        binding.switchArabic.isChecked = ArabicOcr.isEnabled(this)
-        binding.rowArabic.setOnClickListener {
-            val on = !binding.switchArabic.isChecked
-            binding.switchArabic.isChecked = on
-            ArabicOcr.setEnabled(this, on)
-        }
+        bindScriptRow(binding.rowArabic, binding.switchArabic, ScriptOcr.ARABIC)
+        bindScriptRow(binding.rowCyrillic, binding.switchCyrillic, ScriptOcr.CYRILLIC)
         binding.rowLanguagePacks.setOnClickListener {
             LanguagePacksSheet(this) { refreshTranslationRows() }.show()
         }
@@ -278,6 +275,15 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
     }
 
     /** Gives a segmented list its M3 first/middle/last corner shapes for the rows in view. */
+    private fun bindScriptRow(row: View, switch: MaterialSwitch, script: ScriptOcr) {
+        switch.isChecked = script.isEnabled(this)
+        row.setOnClickListener {
+            val on = !switch.isChecked
+            switch.isChecked = on
+            script.setEnabled(this, on)
+        }
+    }
+
     private fun applySegmentShapes(vararg rows: MaterialCardView) {
         val shown = rows.filter { it.isVisible }
         shown.forEachIndexed { index, row ->

@@ -106,6 +106,8 @@
     <string name="projection_stop">Stop</string>
     <string name="arabic_title">Read Arabic script</string>
     <string name="arabic_summary">Reads Arabic text on every capture, a little more slowly</string>
+    <string name="cyrillic_title">Read Cyrillic script</string>
+    <string name="cyrillic_summary">Reads Russian, Ukrainian and other Cyrillic text on every capture, a little more slowly</string>
     <string name="region_mode">Capture a region</string>
     <string name="region_hint">Draw around what you want to keep</string>
     <string name="region_preview">Selected region</string>

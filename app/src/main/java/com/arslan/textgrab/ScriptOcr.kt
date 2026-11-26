@@ -10,48 +10,62 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-/** Arabic-script recognition, which ML Kit lacks, through Tesseract and its bundled model. */
-object ArabicOcr {
+/**
+ * Recognition for a script ML Kit lacks, through Tesseract and a bundled model. ML Kit drops
+ * Arabic without a trace and reads Cyrillic as Latin look-alikes, so neither can be fixed there.
+ */
+class ScriptOcr private constructor(
+    private val language: String,
+    private val prefKey: String,
+    /** Languages written in this script, for which reading it on every capture is on by default. */
+    private val scriptLanguages: Set<String>,
+    private val isScript: (Char) -> Boolean,
+) {
 
     class Line(val box: RectF, val words: List<Pair<String, RectF>>, val blockId: Int, val confidence: Float)
 
-    private const val LANGUAGE = "ara"
+    companion object {
+        /** A line Tesseract is less sure of than this is almost always another script misread. */
+        private const val MIN_LINE_CONFIDENCE = 0.6f
 
-    /** A line Tesseract is less sure of than this is almost always Latin or CJK read as Arabic. */
-    private const val MIN_LINE_CONFIDENCE = 0.6f
+        /** Below this a line must be almost purely letters of the script to count. */
+        private const val SURE_LINE_CONFIDENCE = 0.8f
 
-    /** Below this a line must be almost purely Arabic letters to count. */
-    private const val SURE_LINE_CONFIDENCE = 0.8f
+        private const val MIN_WORD_CONFIDENCE = 0.3f
 
-    private const val MIN_WORD_CONFIDENCE = 0.3f
+        private const val PREFS = "recognition"
 
-    private const val PREFS = "recognition"
-    private const val KEY_ALWAYS = "arabic"
+        val ARABIC = ScriptOcr("ara", "arabic", setOf("ar", "fa", "ur", "ps", "ckb", "sd", "ug")) {
+            it.code.let { c ->
+                c in 0x0600..0x06FF || c in 0x0750..0x077F || c in 0x08A0..0x08FF ||
+                    c in 0xFB50..0xFDFF || c in 0xFE70..0xFEFF
+            }
+        }
 
-    /** Languages written in Arabic script, for which reading it on every capture is on by default. */
-    private val SCRIPT_LANGUAGES = setOf("ar", "fa", "ur", "ps", "ckb", "sd", "ug")
+        val CYRILLIC = ScriptOcr(
+            "rus", "cyrillic",
+            setOf("ru", "uk", "be", "bg", "sr", "mk", "kk", "ky", "mn", "tg"),
+        ) { it.code in 0x0400..0x052F }
+
+        val all = listOf(ARABIC, CYRILLIC)
+    }
 
     private val lock = Mutex()
     private var tess: TessBaseAPI? = null
 
-    /** Whether every capture is also read as Arabic, at the cost of a slower read. */
+    /** Whether every capture is also read in this script, at the cost of a slower read. */
     fun isEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_ALWAYS, systemUsesScript())
+            .getBoolean(prefKey, systemUsesScript())
 
     fun setEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(KEY_ALWAYS, enabled).apply()
+            .putBoolean(prefKey, enabled).apply()
     }
 
     private fun systemUsesScript(): Boolean {
         val locales = android.os.LocaleList.getDefault()
-        return (0 until locales.size()).any { locales[it].language in SCRIPT_LANGUAGES }
-    }
-
-    private fun isArabic(c: Char): Boolean = c.code.let {
-        it in 0x0600..0x06FF || it in 0x0750..0x077F || it in 0x08A0..0x08FF ||
-            it in 0xFB50..0xFDFF || it in 0xFE70..0xFEFF
+        return (0 until locales.size()).any { locales[it].language in scriptLanguages }
     }
 
     suspend fun read(context: Context, bitmap: Bitmap): List<Line> = withContext(Dispatchers.Default) {
@@ -82,19 +96,19 @@ object ArabicOcr {
 
     private fun open(context: Context): TessBaseAPI? {
         val root = File(context.noBackupFilesDir, "tesseract")
-        val model = File(root, "tessdata/$LANGUAGE.traineddata")
+        val model = File(root, "tessdata/$language.traineddata")
         if (!model.exists()) {
             model.parentFile?.mkdirs()
             val partial = File(model.path + ".part")
-            context.assets.open("tessdata/$LANGUAGE.traineddata").use { input ->
+            context.assets.open("tessdata/$language.traineddata").use { input ->
                 partial.outputStream().use { input.copyTo(it) }
             }
             partial.renameTo(model)
         }
         val api = TessBaseAPI()
-        if (!api.init(root.absolutePath, LANGUAGE, TessBaseAPI.OEM_LSTM_ONLY)) {
+        if (!api.init(root.absolutePath, language, TessBaseAPI.OEM_LSTM_ONLY)) {
             api.recycle()
-            android.util.Log.w("TextGrab", "Tesseract failed to load $LANGUAGE")
+            android.util.Log.w("TextGrab", "Tesseract failed to load $language")
             return null
         }
         api.pageSegMode = TessBaseAPI.PageSegMode.PSM_AUTO
@@ -139,13 +153,13 @@ object ArabicOcr {
         if (confidence < MIN_LINE_CONFIDENCE) return null
         val text = words.joinToString("") { it.first }
         val letters = text.count { it.isLetter() }
-        // Mostly Arabic letters, or Tesseract is reading another script with the wrong model.
-        if (letters == 0 || text.count(::isArabic) * 2 < letters) return null
-        // Icons read as a few Arabic glyphs mixed with digits and symbols.
-        val arabic = text.count(::isArabic)
+        // Mostly letters of the script, or Tesseract is reading another script with the wrong model.
+        val native = text.count(isScript)
+        if (letters == 0 || native * 2 < letters) return null
+        // Icons read as a few glyphs of the script mixed with digits and symbols.
         val purity = if (confidence < SURE_LINE_CONFIDENCE) 0.9f else 0.7f
-        if (arabic < 2 || arabic < purity * text.length) return null
-        if (words.none { w -> w.first.count(::isArabic) >= 3 }) return null
+        if (native < 2 || native < purity * text.length) return null
+        if (words.none { w -> w.first.count(isScript) >= 3 }) return null
         val box = RectF(words[0].second).apply { words.forEach { union(it.second) } }
         return Line(box, words, block, confidence)
     }
