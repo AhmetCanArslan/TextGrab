@@ -796,6 +796,7 @@ open class MainActivity : AppCompatActivity(), SelectableOcrView.Listener {
                     ).setAction(R.string.change_language) { chooseTargetLanguage() }.show()
                     return@launch
                 }
+                binding.ocrView.translationBlocks = outcome.blocks
                 binding.ocrView.translations = outcome.lines
                 setTranslateActive(true)
                 Snackbar.make(

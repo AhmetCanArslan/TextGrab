@@ -13,6 +13,9 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import android.os.Build
 import android.util.AttributeSet
 import android.view.GestureDetector
@@ -75,6 +78,9 @@ class SelectableOcrView @JvmOverloads constructor(
             if (isUserZoomed) onTransformed() else refit()
         }
 
+    /** Paragraphs set before [translations], drawn reflowed over their lines rather than line by line. */
+    var translationBlocks: List<Translator.Block> = emptyList()
+
     var translations: List<String?>? = null
         set(value) {
             if (field === value) return
@@ -83,6 +89,7 @@ class SelectableOcrView @JvmOverloads constructor(
                 drawnTranslations = value
                 overlayColors = lineColors()
                 overlayStyles = computeOverlayStyles(value)
+                overlayBlocks = layoutBlocks(translationBlocks, overlayColors.orEmpty())
             }
             if (selStart != -1) notifySelection()
             fadeOverlayTo(if (value != null) 1f else 0f)
@@ -95,6 +102,16 @@ class SelectableOcrView @JvmOverloads constructor(
     private var overlayColors: List<Pair<Int, Int>>? = null
 
     private var overlayStyles: List<Pair<Float, Float>>? = null
+
+    private class DrawnBlock(
+        val box: RectF,
+        val bg: Int,
+        val layout: StaticLayout,
+        val paint: TextPaint,
+        val lines: List<Int>,
+    )
+
+    private var overlayBlocks: List<DrawnBlock> = emptyList()
 
     /** Sampled from the image only, so it survives translate toggles. */
     private var lineColorCache: List<Pair<Int, Int>>? = null
@@ -237,6 +254,7 @@ class SelectableOcrView @JvmOverloads constructor(
         overlayAnimator = null
         overlayAlpha = 0f
         drawnTranslations = null
+        overlayBlocks = emptyList()
         lineColorCache = null
         captureProgress = 1f
         entryPending = false
@@ -553,7 +571,23 @@ class SelectableOcrView @JvmOverloads constructor(
         val alpha = (overlayAlpha * 255f).toInt().coerceIn(0, 255)
         canvas.save()
         canvas.concat(imageMatrix)
+        val inBlock = BooleanArray(r.lineBoxes.size)
+        for (b in overlayBlocks) {
+            val pad = b.layout.paint.textSize * 0.15f
+            tmpRect.set(b.box)
+            tmpRect.inset(-pad, -pad)
+            overlayBgPaint.color = b.bg
+            overlayBgPaint.alpha = alpha
+            canvas.drawRoundRect(tmpRect, pad, pad, overlayBgPaint)
+            b.paint.alpha = alpha
+            canvas.save()
+            canvas.translate(b.box.left, b.box.top)
+            b.layout.draw(canvas)
+            canvas.restore()
+        }
+        for (b in overlayBlocks) for (i in b.lines) inBlock[i] = true
         r.lineBoxes.forEachIndexed { i, box ->
+            if (inBlock[i]) return@forEachIndexed
             val text = texts.getOrNull(i) ?: return@forEachIndexed
             val (bg, fg) = colors[i]
             val pad = box.height() * 0.12f
@@ -587,6 +621,45 @@ class SelectableOcrView @JvmOverloads constructor(
         return false
     }
 
+    /**
+     * Lays a paragraph's translation out across the union of its lines, the way a reader would
+     * set it, instead of cutting it at the original line breaks - which split words and phrases
+     * apart and squeezed whatever did not fit.
+     */
+    private fun layoutBlocks(blocks: List<Translator.Block>, colors: List<Pair<Int, Int>>): List<DrawnBlock> {
+        val r = result ?: return emptyList()
+        return blocks.mapNotNull { block ->
+            val ids = block.lines.filter { it in r.lineBoxes.indices && it in colors.indices }
+            if (ids.isEmpty() || block.text.isBlank()) return@mapNotNull null
+            val box = RectF(r.lineBoxes[ids[0]]).apply { ids.forEach { union(r.lineBoxes[it]) } }
+            val width = box.width().toInt()
+            if (width <= 0) return@mapNotNull null
+            val heights = ids.map { r.lineBoxes[it].height() }.sorted()
+            val start = heights[heights.size / 2] * 0.75f
+            val paint = TextPaint(overlayTextPaint).apply {
+                color = colors[ids[0]].second
+                textScaleX = 1f
+                textAlign = Paint.Align.LEFT
+            }
+            var size = start
+            var layout: StaticLayout
+            while (true) {
+                paint.textSize = size
+                layout = StaticLayout.Builder.obtain(block.text, 0, block.text.length, paint, width)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setIncludePad(false)
+                    .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
+                    .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NORMAL)
+                    .build()
+                if (layout.height <= box.height() * 1.05f || size <= start * MIN_TEXT_SHRINK) break
+                size *= 0.92f
+            }
+            // Text that still runs long gets room below rather than being clipped.
+            if (layout.height > box.height()) box.bottom = box.top + layout.height
+            DrawnBlock(box, colors[ids[0]].first, layout, paint, ids)
+        }
+    }
+
     private fun computeOverlayStyles(texts: List<String?>): List<Pair<Float, Float>> {
         val r = result ?: return emptyList()
         val paint = Paint(overlayTextPaint)
@@ -616,7 +689,10 @@ class SelectableOcrView @JvmOverloads constructor(
     private fun fadeOverlayTo(target: Float) {
         overlayAnimator?.cancel()
         if (overlayAlpha == target) {
-            if (target == 0f) drawnTranslations = null
+            if (target == 0f) {
+                drawnTranslations = null
+                overlayBlocks = emptyList()
+            }
             return
         }
         overlayAnimator = ValueAnimator.ofFloat(overlayAlpha, target).apply {
@@ -631,6 +707,7 @@ class SelectableOcrView @JvmOverloads constructor(
                     overlayAnimator = null
                     if (overlayAlpha == 0f) {
                         drawnTranslations = null
+                        overlayBlocks = emptyList()
                         overlayStyles = null
                         invalidate()
                     }

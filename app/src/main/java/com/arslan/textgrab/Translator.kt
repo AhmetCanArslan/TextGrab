@@ -26,7 +26,10 @@ internal fun isCjk(c: Char): Boolean = c.code.let {
 
 object Translator {
 
-    class Outcome(val lines: List<String?>, val sources: Set<String>)
+    /** A multi-line paragraph's translation, to be laid out across all of its lines at once. */
+    class Block(val lines: List<Int>, val text: String)
+
+    class Outcome(val lines: List<String?>, val sources: Set<String>, val blocks: List<Block> = emptyList())
 
     private const val PREFS = "translate"
     private const val KEY_TARGET = "target"
@@ -127,14 +130,16 @@ object Translator {
             )
         )
         val sources = LinkedHashSet<String>()
+        val blocks = ArrayList<Block>()
         pending.forEachIndexed { i, p ->
             val text = translated.getOrNull(i)?.takeIf { it.isNotBlank() } ?: return@forEachIndexed
             val widths = p.lines.map { result.lineBoxes[it].width() }
             distribute(p.prefix + text, widths)
                 .forEachIndexed { line, lineText -> out[p.lines[line]] = lineText }
+            if (p.lines.size > 1) blocks.add(Block(p.lines, p.prefix + text))
             sources.add(p.source)
         }
-        return Outcome(out.toList(), sources)
+        return Outcome(out.toList(), sources, blocks)
     }
 
     private class Paragraph(val lines: List<Int>, val prefix: String, val text: String) {
