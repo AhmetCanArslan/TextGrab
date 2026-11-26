@@ -48,6 +48,15 @@ object Translator {
 
     private const val MIN_HEIGHT_RATIO = 0.7f
 
+    /** The widest gap, in line heights, any paragraph is allowed however loosely it is set. */
+    private const val MAX_LOOSE_GAP = 1.6f
+
+    /** How far past its usual line spacing a paragraph may stretch before a gap ends it. */
+    private const val SPACING_SLACK = 1.4f
+
+    /** Gap allowed when the sentence plainly runs on into the next line. */
+    private const val RUN_ON_GAP = 1.3f
+
     /** How far, in line heights, a split-off piece of a line may sit from the rest of it. */
     private const val MAX_FRAGMENT_GAP = 1.2f
 
@@ -148,6 +157,7 @@ object Translator {
 
     private fun paragraphs(result: OcrEngine.Result, texts: List<String>): List<Paragraph> {
         val rows = rowOfLine(result)
+        val spacing = blockSpacing(result, rows)
         // Lines arrive row by row, so a paragraph's lines are interleaved with whatever else
         // shares those rows: a side badge, a button, a word OCR split off the end of the line.
         // Each line therefore joins whichever open paragraph it continues, rather than only the
@@ -158,7 +168,7 @@ object Translator {
             if (isUntranslatable(texts[id])) continue
             val box = result.lineBoxes[id]
             val run = runs
-                .filter { continuesParagraph(result, rows, texts, it.last(), id) }
+                .filter { continuesParagraph(result, rows, spacing, texts, it.last(), id) }
                 .minByOrNull { box.top - result.lineBoxes[it.last()].bottom }
             if (run != null) run.add(id) else runs.add(mutableListOf(id))
         }
@@ -211,9 +221,31 @@ object Translator {
         return rows
     }
 
+    /**
+     * Each OCR block's usual gap between lines, in line heights. Apps set text anywhere from
+     * cramped to airy, so one fixed threshold either splits loose paragraphs or merges tight lists.
+     */
+    private fun blockSpacing(result: OcrEngine.Result, rows: IntArray): Map<Int, Float> {
+        val gaps = HashMap<Int, MutableList<Float>>()
+        val byBlock = result.lineBoxes.indices.groupBy { result.lineBlocks[it] }
+        for ((block, ids) in byBlock) {
+            val sorted = ids.sortedBy { result.lineBoxes[it].top }
+            for (k in 1 until sorted.size) {
+                val a = result.lineBoxes[sorted[k - 1]]
+                val b = result.lineBoxes[sorted[k]]
+                if (rows[sorted[k - 1]] == rows[sorted[k]]) continue
+                val h = max(a.height(), b.height())
+                if (h <= 0f) continue
+                gaps.getOrPut(block) { ArrayList() }.add((b.top - a.bottom) / h)
+            }
+        }
+        return gaps.mapValues { (_, g) -> g.sorted()[g.size / 2] }
+    }
+
     private fun continuesParagraph(
         result: OcrEngine.Result,
         rows: IntArray,
+        spacing: Map<Int, Float>,
         texts: List<String>,
         prev: Int,
         id: Int,
@@ -230,14 +262,37 @@ object Translator {
         val height = max(a.height(), b.height())
         if (height <= 0f) return false
         val gap = b.top - a.bottom
-        if (gap > MAX_LINE_GAP * height || gap < -0.6f * height) return false
+        if (gap < -0.6f * height) return false
 
         if (min(a.height(), b.height()) / height < MIN_HEIGHT_RATIO) return false
 
-        val overlap = min(a.right, b.right) - max(a.left, b.left)
-        if (overlap < 0.4f * min(a.width(), b.width())) return false
+        val sameBlock = result.lineBlocks[prev] == result.lineBlocks[id]
+        val prevText = texts[prev].trimEnd()
+        val nextText = texts[id].trimStart()
+        // "...and the" / "rest of it": the sentence is not done, so the line break is not a paragraph's.
+        val runsOn = prevText.lastOrNull()?.let { it.isLetter() || it == ',' } == true &&
+            nextText.firstOrNull()?.isLowerCase() == true
 
-        return result.lineBlocks[prev] == result.lineBlocks[id] || gap <= 0.5f * height
+        var allowed = MAX_LINE_GAP
+        if (sameBlock) spacing[result.lineBlocks[prev]]?.let { usual ->
+            allowed = max(allowed, usual * SPACING_SLACK + 0.2f)
+        }
+        if (runsOn) allowed = max(allowed, RUN_ON_GAP)
+        if (gap > min(allowed, MAX_LOOSE_GAP) * height) return false
+
+        // Same left edge, or both centred on one axis: a column even when the widths differ a lot.
+        val aligned = kotlin.math.abs(a.left - b.left) <= 0.6f * height ||
+            kotlin.math.abs(a.right - b.right) <= 0.6f * height ||
+            kotlin.math.abs(a.centerX() - b.centerX()) <= 0.6f * height
+        val overlap = min(a.right, b.right) - max(a.left, b.left)
+        if (overlap <= 0f || (!aligned && overlap < 0.4f * min(a.width(), b.width()))) return false
+
+        // A sentence that ends well short of the line below closes its paragraph.
+        if (!runsOn && prevText.lastOrNull()?.let { it in SENTENCE_END } == true &&
+            a.width() < 0.6f * b.width()
+        ) return false
+
+        return sameBlock || runsOn || gap <= 0.5f * height
     }
 
     private fun isUntranslatable(line: String): Boolean {
